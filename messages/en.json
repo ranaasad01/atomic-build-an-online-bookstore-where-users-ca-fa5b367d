@@ -15,7 +15,24 @@
   "hero": {
     "bullet1": "Over 50,000 titles in stock",
     "bullet2": "Free shipping on orders over $50",
-    "bullet3": "30-day hassle-free returns"
+    "bullet3": "30-day hassle-free returns",
+    "badge": "New arrivals",
+    "cta_banner_btn": "Shop now",
+    "cta_banner_heading": "Limited edition pressings",
+    "cta_banner_sub": "Exclusive releases available for a short time.",
+    "cta_primary": "Start shopping",
+    "cta_secondary": "Learn more",
+    "featured_cta": "View collection",
+    "featured_heading": "Curated for collectors",
+    "featured_label": "Featured",
+    "genres_cta": "Explore genres",
+    "genres_heading": "Browse by genre",
+    "genres_label": "Genres",
+    "headline": "Vinyl for every mood",
+    "subheadline": "Discover rare pressings, classic albums, and new releases.",
+    "testimonials_heading": "Loved by collectors",
+    "testimonials_label": "Testimonials",
+    "why_heading": "Why shop with us"
   },
   "catalog": {
     "heading": "Browse the Catalog",
@@ -52,7 +69,15 @@
     "onlyLeft": "Only {count} left",
     "verifiedReaders": "Verified readers",
     "description": "Description",
-    "viewCart": "View Cart"
+    "viewCart": "View Cart",
+    "anyPrice": "Any price",
+    "browseLabel": "Browse all",
+    "eyebrow": "Shop our collection",
+    "filterGenre": "Genre",
+    "filterPrice": "Price",
+    "freeShippingNudge": "Free shipping on orders over $50",
+    "results": "Results",
+    "title": "Vinyl Records"
   },
   "cart": {
     "heading": "Your Cart",
@@ -118,7 +143,15 @@
     "shippingTo": "Shipping To",
     "estimatedDelivery": "Estimated Delivery",
     "yourBooks": "Your Books",
-    "orderSummary": "Order Summary"
+    "orderSummary": "Order Summary",
+    "free": "Free",
+    "itemsOrdered": "Items ordered",
+    "shipping": "Shipping",
+    "subtitle": "Your order is confirmed. Check your email for details.",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "title": "Order confirmed",
+    "total": "Total"
   },
   "shipping-info": {
     "heading": "Shipping Information",

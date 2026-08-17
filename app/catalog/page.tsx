@@ -122,7 +122,7 @@ function AddToCartButton({ book }: { book: Book }) {
       {added ? (
         <><Check className="h-3.5 w-3.5" />{t("catalog.added")}</>
       ) : outOfStock ? (
-        t("catalog.outOfStock")
+        <>{t("catalog.outOfStock")}</>
       ) : (
         <><ShoppingCart className="h-3.5 w-3.5" />{t("catalog.addToCart")}</>
       )}
@@ -130,30 +130,7 @@ function AddToCartButton({ book }: { book: Book }) {
   );
 }
 
-// ─── Star rating ──────────────────────────────────────────────────────────────
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={cn(
-            "h-3.5 w-3.5",
-            star <= Math.round(rating)
-              ? "fill-[var(--accent)] text-[var(--accent)]"
-              : "fill-transparent text-[var(--border)]"
-          )}
-        />
-      ))}
-      <span className="ml-1 text-xs text-[var(--muted-foreground)]">
-        {rating.toFixed(1)}
-      </span>
-    </div>
-  );
-}
-
-// ─── Book card (grid) ─────────────────────────────────────────────────────────
+// ─── Book Card (Grid) ─────────────────────────────────────────────────────────
 
 function BookCardGrid({ book }: { book: Book }) {
   return (
@@ -201,26 +178,33 @@ function BookCardGrid({ book }: { book: Book }) {
           <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">{book.author}</p>
         </div>
 
-        <StarRating rating={book.rating} />
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              className={cn(
+                "h-3.5 w-3.5",
+                star <= Math.round(book.rating)
+                  ? "fill-[var(--accent)] text-[var(--accent)]"
+                  : "fill-transparent text-[var(--border)]"
+              )}
+            />
+          ))}
+          <span className="ml-1 text-xs text-[var(--muted-foreground)]">{book.rating.toFixed(1)}</span>
+        </div>
 
-        <div className="mt-auto flex items-center justify-between pt-2">
+        <div className="mt-auto flex items-center justify-between gap-2">
           <span className="font-display text-lg font-bold text-[var(--foreground)]">
             ${book.price.toFixed(2)}
           </span>
           <AddToCartButton book={book} />
         </div>
-
-        {book.stock_quantity > 0 && book.stock_quantity <= 5 && (
-          <p className="text-[10px] text-amber-600 font-medium">
-            Only {book.stock_quantity} left
-          </p>
-        )}
       </div>
     </motion.article>
   );
 }
 
-// ─── Book card (list) ─────────────────────────────────────────────────────────
+// ─── Book Card (List) ─────────────────────────────────────────────────────────
 
 function BookCardList({ book }: { book: Book }) {
   return (
@@ -228,6 +212,7 @@ function BookCardList({ book }: { book: Book }) {
       variants={cardVariants}
       className="group flex gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.14)]"
     >
+      {/* Cover */}
       <Link href={`/book-detail?id=${book.id}`} className="shrink-0">
         <div className="relative h-32 w-22 overflow-hidden rounded-xl bg-[var(--accent-light)]">
           <img
@@ -242,76 +227,87 @@ function BookCardList({ book }: { book: Book }) {
         </div>
       </Link>
 
+      {/* Info */}
       <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-        <div>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-            {book.genre}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+              {book.genre}
+            </span>
+            <Link href={`/book-detail?id=${book.id}`}>
+              <h3 className="font-display text-base font-bold leading-snug text-[var(--foreground)] hover:text-[var(--accent)] transition-colors duration-200 line-clamp-1">
+                {book.title}
+              </h3>
+            </Link>
+            <p className="text-sm text-[var(--muted-foreground)]">{book.author}</p>
+          </div>
+          <span className="shrink-0 font-display text-lg font-bold text-[var(--foreground)]">
+            ${book.price.toFixed(2)}
           </span>
-          <Link href={`/book-detail?id=${book.id}`}>
-            <h3 className="font-display text-base font-bold leading-snug text-[var(--foreground)] hover:text-[var(--accent)] transition-colors duration-200 line-clamp-1">
-              {book.title}
-            </h3>
-          </Link>
-          <p className="text-sm text-[var(--muted-foreground)]">{book.author}</p>
         </div>
 
-        <StarRating rating={book.rating} />
-
-        <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 leading-relaxed">
+        <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 leading-relaxed">
           {book.description}
         </p>
 
-        <div className="mt-auto flex items-center gap-4">
-          <span className="font-display text-lg font-bold text-[var(--foreground)]">
-            ${book.price.toFixed(2)}
-          </span>
+        <div className="mt-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={cn(
+                  "h-3.5 w-3.5",
+                  star <= Math.round(book.rating)
+                    ? "fill-[var(--accent)] text-[var(--accent)]"
+                    : "fill-transparent text-[var(--border)]"
+                )}
+              />
+            ))}
+            <span className="ml-1 text-xs text-[var(--muted-foreground)]">{book.rating.toFixed(1)}</span>
+          </div>
           <AddToCartButton book={book} />
-          {book.is_bestseller && (
-            <span className="rounded-full bg-[var(--accent-light)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-              Bestseller
-            </span>
-          )}
         </div>
       </div>
     </motion.article>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CatalogPage() {
   const t = useTranslations();
 
-  // ── Filter / sort / pagination state ──────────────────────────────────────
+  // ── Filter / sort / pagination state ──
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
   const [selectedPriceRange, setSelectedPriceRange] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("bestsellers");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // ── Data state ────────────────────────────────────────────────────────────
+  // ── Data state ──
   const [books, setBooks] = useState<Book[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Debounce search to avoid firing on every keystroke
-  const searchRef = useRef(searchQuery);
-  searchRef.current = searchQuery;
-  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  // ── Search debounce ──
+  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchRef.current), 400);
-    return () => clearTimeout(timer);
+    if (searchRef.current) clearTimeout(searchRef.current);
+    searchRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 350);
+    return () => {
+      if (searchRef.current) clearTimeout(searchRef.current);
+    };
   }, [searchQuery]);
 
-  // Reset to page 1 whenever filters/sort/search change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedGenre, selectedPriceRange, debouncedSearch, sortBy]);
-
-  // ── Supabase fetch ────────────────────────────────────────────────────────
+  // ── Fetch books from Supabase ──
   useEffect(() => {
     let cancelled = false;
 
@@ -323,19 +319,19 @@ export default function CatalogPage() {
         const supabase = createClient();
         const offset = (currentPage - 1) * PAGE_SIZE;
 
+        // ── Build base query ──
         let query = supabase
           .from("books")
           .select(
-            "id, title, author, genre, price, rating, cover_image, is_bestseller, is_featured, stock_quantity, description",
-            { count: "exact" }
+            "id, title, author, genre, price, rating, cover_image, is_bestseller, is_featured, stock_quantity, description"
           );
 
-        // Genre filter
+        // ── Genre filter ──
         if (selectedGenre) {
           query = query.eq("genre", selectedGenre);
         }
 
-        // Price range filter
+        // ── Price range filter ──
         if (selectedPriceRange !== null) {
           const range = PRICE_RANGES[selectedPriceRange];
           if (range) {
@@ -346,47 +342,70 @@ export default function CatalogPage() {
           }
         }
 
-        // Search filter
+        // ── Search filter ──
         if (debouncedSearch.trim()) {
-          const term = debouncedSearch.trim();
-          query = query.or(`title.ilike.%${term}%,author.ilike.%${term}%`);
+          query = query.or(
+            `title.ilike.%${debouncedSearch.trim()}%,author.ilike.%${debouncedSearch.trim()}%`
+          );
         }
 
-        // Sort
-        switch (sortBy) {
-          case "bestsellers":
-            query = query.order("is_bestseller", { ascending: false });
-            break;
-          case "newest":
-            query = query.order("created_at", { ascending: false });
-            break;
-          case "price-low":
-            query = query.order("price", { ascending: true });
-            break;
-          case "price-high":
-            query = query.order("price", { ascending: false });
-            break;
-          case "rating":
-            query = query.order("rating", { ascending: false });
-            break;
+        // ── Sort ──
+        if (sortBy === "bestsellers") {
+          query = query.eq("is_bestseller", true);
+        } else if (sortBy === "newest") {
+          query = query.order("created_at", { ascending: false });
+        } else if (sortBy === "price-low") {
+          query = query.order("price", { ascending: true });
+        } else if (sortBy === "price-high") {
+          query = query.order("price", { ascending: false });
+        } else if (sortBy === "rating") {
+          query = query.order("rating", { ascending: false });
         }
 
-        // Pagination
+        // ── Pagination ──
         query = query.range(offset, offset + PAGE_SIZE - 1);
 
-        const { data, count, error: supabaseError } = await query;
+        // ── Count query (same filters, no pagination) ──
+        let countQuery = supabase
+          .from("books")
+          .select("*", { count: "exact", head: true });
+
+        if (selectedGenre) {
+          countQuery = countQuery.eq("genre", selectedGenre);
+        }
+        if (selectedPriceRange !== null) {
+          const range = PRICE_RANGES[selectedPriceRange];
+          if (range) {
+            countQuery = countQuery.gte("price", range.min);
+            if (range.max !== Infinity) {
+              countQuery = countQuery.lte("price", range.max);
+            }
+          }
+        }
+        if (debouncedSearch.trim()) {
+          countQuery = countQuery.or(
+            `title.ilike.%${debouncedSearch.trim()}%,author.ilike.%${debouncedSearch.trim()}%`
+          );
+        }
+        if (sortBy === "bestsellers") {
+          countQuery = countQuery.eq("is_bestseller", true);
+        }
+
+        const [{ data, error: fetchError }, { count, error: countError }] =
+          await Promise.all([query, countQuery]);
 
         if (cancelled) return;
 
-        if (supabaseError) {
-          throw new Error(supabaseError.message);
-        }
+        if (fetchError) throw new Error(fetchError.message);
+        if (countError) throw new Error(countError.message);
 
         setBooks((data as Book[]) ?? []);
         setTotalCount(count ?? 0);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load books");
+          setError(
+            err instanceof Error ? err.message : "Failed to load books. Please try again."
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -394,22 +413,42 @@ export default function CatalogPage() {
     }
 
     fetchBooks();
-    return () => { cancelled = true; };
-  }, [selectedGenre, selectedPriceRange, debouncedSearch, sortBy, currentPage]);
 
-  // ── Derived values ────────────────────────────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const hasActiveFilters = !!selectedGenre || selectedPriceRange !== null || !!debouncedSearch.trim();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGenre, selectedPriceRange, sortBy, currentPage, debouncedSearch]);
+
+  // ── Reset page when filters change ──
+  const handleGenreChange = useCallback((genre: string) => {
+    setSelectedGenre(genre);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePriceRangeChange = useCallback((idx: number | null) => {
+    setSelectedPriceRange(idx);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSortChange = useCallback((sort: SortOption) => {
+    setSortBy(sort);
+    setCurrentPage(1);
+  }, []);
 
   const clearFilters = useCallback(() => {
-    setSearchQuery("");
     setSelectedGenre("");
     setSelectedPriceRange(null);
+    setSearchQuery("");
+    setDebouncedSearch("");
     setSortBy("bestsellers");
     setCurrentPage(1);
   }, []);
 
-  const sortOptions: { value: SortOption; label: string }[] = [
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const hasActiveFilters =
+    selectedGenre !== "" || selectedPriceRange !== null || debouncedSearch !== "";
+
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: "bestsellers", label: t("catalog.sortBestsellers") },
     { value: "newest", label: t("catalog.sortNewest") },
     { value: "price-low", label: t("catalog.sortPriceLow") },
@@ -417,45 +456,44 @@ export default function CatalogPage() {
     { value: "rating", label: t("catalog.sortRating") },
   ];
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Header */}
+      {/* ── Hero bar ── */}
       <Reveal>
-        <section className="relative overflow-hidden bg-[var(--primary)] py-14 md:py-20">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 50%, white 0%, transparent 60%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)",
-            }}
-          />
-          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h1 className="font-display text-3xl font-bold text-white md:text-4xl lg:text-5xl tracking-tight">
-              {t("catalog.heading")}
-            </h1>
-            <p className="mt-3 text-white/70 text-base md:text-lg max-w-xl">
-              {t("catalog.subheading")}
-            </p>
-            {/* Search bar */}
-            <div className="mt-6 relative max-w-xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("catalog.searchPlaceholder")}
-                className="w-full rounded-2xl border border-white/20 bg-white/10 py-3 pl-11 pr-4 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-white/50 hover:text-white transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+        <section className="bg-[var(--primary)] py-12 md:py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">
+                  {t("catalog.eyebrow")}
+                </p>
+                <h1 className="font-display text-3xl font-bold text-white md:text-4xl">
+                  {t("catalog.heading")}
+                </h1>
+                <p className="mt-2 text-white/60 text-sm">
+                  {t("catalog.subheading")}
+                </p>
+              </div>
+              {/* Search */}
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                <input
+                  type="search"
+                  placeholder={t("catalog.searchPlaceholder")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-white/20 bg-white/10 py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -463,25 +501,21 @@ export default function CatalogPage() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-8">
-          {/* ── Sidebar ── */}
-          <aside
-            className={cn(
-              "shrink-0 w-64 hidden lg:block",
-            )}
-          >
+          {/* ── Sidebar filters (desktop) ── */}
+          <aside className="hidden lg:block w-56 shrink-0">
             <div className="sticky top-24 space-y-6">
-              {/* Genre filter */}
+              {/* Genre */}
               <div>
-                <h3 className="text-sm font-semibold text-[var(--foreground)] uppercase tracking-wider mb-3">
-                  Genre
-                </h3>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)] mb-3">
+                  {t("catalog.filterGenre")}
+                </h2>
                 <ul className="space-y-1">
                   <li>
                     <button
-                      onClick={() => setSelectedGenre("")}
+                      onClick={() => handleGenreChange("")}
                       className={cn(
-                        "w-full text-left rounded-xl px-3 py-2 text-sm transition-colors duration-150",
-                        !selectedGenre
+                        "w-full text-left rounded-lg px-3 py-1.5 text-sm transition-colors duration-150",
+                        selectedGenre === ""
                           ? "bg-[var(--accent-light)] text-[var(--foreground)] font-semibold"
                           : "text-[var(--muted-foreground)] hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
                       )}
@@ -492,9 +526,9 @@ export default function CatalogPage() {
                   {GENRES.map((genre) => (
                     <li key={genre}>
                       <button
-                        onClick={() => setSelectedGenre(genre === selectedGenre ? "" : genre)}
+                        onClick={() => handleGenreChange(genre)}
                         className={cn(
-                          "w-full text-left rounded-xl px-3 py-2 text-sm transition-colors duration-150",
+                          "w-full text-left rounded-lg px-3 py-1.5 text-sm transition-colors duration-150",
                           selectedGenre === genre
                             ? "bg-[var(--accent-light)] text-[var(--foreground)] font-semibold"
                             : "text-[var(--muted-foreground)] hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
@@ -507,29 +541,37 @@ export default function CatalogPage() {
                 </ul>
               </div>
 
-              {/* Price range filter */}
+              {/* Price range */}
               <div>
-                <h3 className="text-sm font-semibold text-[var(--foreground)] uppercase tracking-wider mb-3">
-                  {t("catalog.priceRange")}
-                </h3>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)] mb-3">
+                  {t("catalog.filterPrice")}
+                </h2>
                 <ul className="space-y-1">
+                  <li>
+                    <button
+                      onClick={() => handlePriceRangeChange(null)}
+                      className={cn(
+                        "w-full text-left rounded-lg px-3 py-1.5 text-sm transition-colors duration-150",
+                        selectedPriceRange === null
+                          ? "bg-[var(--accent-light)] text-[var(--foreground)] font-semibold"
+                          : "text-[var(--muted-foreground)] hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
+                      )}
+                    >
+                      {t("catalog.anyPrice")}
+                    </button>
+                  </li>
                   {PRICE_RANGES.map((range, idx) => (
                     <li key={range.label}>
                       <button
-                        onClick={() =>
-                          setSelectedPriceRange(selectedPriceRange === idx ? null : idx)
-                        }
+                        onClick={() => handlePriceRangeChange(idx)}
                         className={cn(
-                          "w-full text-left rounded-xl px-3 py-2 text-sm transition-colors duration-150 flex items-center justify-between",
+                          "w-full text-left rounded-lg px-3 py-1.5 text-sm transition-colors duration-150",
                           selectedPriceRange === idx
                             ? "bg-[var(--accent-light)] text-[var(--foreground)] font-semibold"
                             : "text-[var(--muted-foreground)] hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
                         )}
                       >
                         {range.label}
-                        {selectedPriceRange === idx && (
-                          <Check className="h-3.5 w-3.5 text-[var(--accent)]" />
-                        )}
                       </button>
                     </li>
                   ))}
@@ -540,7 +582,7 @@ export default function CatalogPage() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-2 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors font-medium"
+                  className="flex items-center gap-1.5 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors font-medium"
                 >
                   <X className="h-3.5 w-3.5" />
                   {t("catalog.clearFilters")}
@@ -556,8 +598,8 @@ export default function CatalogPage() {
               <div className="flex items-center gap-2">
                 {/* Mobile filter toggle */}
                 <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="lg:hidden flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--accent-light)] transition-colors"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="lg:hidden flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] hover:border-[var(--accent)] transition-colors"
                 >
                   <Filter className="h-4 w-4" />
                   {t("catalog.filters")}
@@ -568,19 +610,13 @@ export default function CatalogPage() {
                   )}
                 </button>
 
-                {/* Result count */}
-                {!loading && (
-                  <p className="text-sm text-[var(--muted-foreground)]">
-                    {t("catalog.showing")}{" "}
-                    <span className="font-semibold text-[var(--foreground)]">
-                      {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalCount)}–
-                      {Math.min(currentPage * PAGE_SIZE, totalCount)}
-                    </span>{" "}
-                    {t("catalog.of")}{" "}
-                    <span className="font-semibold text-[var(--foreground)]">{totalCount}</span>{" "}
-                    {t("catalog.books")}
-                  </p>
-                )}
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {loading ? (
+                    <span className="inline-block h-4 w-24 bg-[var(--accent-light)] rounded animate-pulse" />
+                  ) : (
+                    <>{totalCount.toLocaleString("en-US")} {t("catalog.results")}</>
+                  )}
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -588,10 +624,10 @@ export default function CatalogPage() {
                 <div className="relative">
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] py-2 pl-3 pr-8 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all cursor-pointer"
+                    onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                    className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] py-2 pl-3 pr-8 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 transition-all cursor-pointer"
                   >
-                    {sortOptions.map((opt) => (
+                    {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
@@ -600,28 +636,28 @@ export default function CatalogPage() {
                   <SlidersHorizontal className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
                 </div>
 
-                {/* View toggle */}
-                <div className="flex rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+                {/* View mode */}
+                <div className="flex rounded-xl border border-[var(--border)] overflow-hidden">
                   <button
                     onClick={() => setViewMode("grid")}
-                    aria-label={t("catalog.gridView")}
+                    aria-label="Grid view"
                     className={cn(
                       "p-2 transition-colors",
                       viewMode === "grid"
                         ? "bg-[var(--accent)] text-[var(--primary)]"
-                        : "text-[var(--muted-foreground)] hover:bg-[var(--accent-light)]"
+                        : "bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--accent-light)]"
                     )}
                   >
                     <LayoutGrid className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
-                    aria-label={t("catalog.listView")}
+                    aria-label="List view"
                     className={cn(
                       "p-2 transition-colors",
                       viewMode === "list"
                         ? "bg-[var(--accent)] text-[var(--primary)]"
-                        : "text-[var(--muted-foreground)] hover:bg-[var(--accent-light)]"
+                        : "bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--accent-light)]"
                     )}
                   >
                     <List className="h-4 w-4" />
@@ -630,43 +666,35 @@ export default function CatalogPage() {
               </div>
             </div>
 
-            {/* Mobile sidebar drawer */}
-            {sidebarOpen && (
-              <div className="lg:hidden mb-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 space-y-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-[var(--foreground)]">{t("catalog.filters")}</h3>
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="rounded-full p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
+            {/* Mobile filters panel */}
+            {showFilters && (
+              <div className="lg:hidden mb-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-5">
                 {/* Genre */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Genre</p>
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
+                    {t("catalog.filterGenre")}
+                  </h2>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => setSelectedGenre("")}
+                      onClick={() => { handleGenreChange(""); setShowFilters(false); }}
                       className={cn(
-                        "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                        !selectedGenre
-                          ? "bg-[var(--accent)] text-[var(--primary)]"
-                          : "border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
+                        "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+                        selectedGenre === ""
+                          ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--primary)]"
+                          : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
                       )}
                     >
-                      All
+                      {t("catalog.allGenres")}
                     </button>
                     {GENRES.map((genre) => (
                       <button
                         key={genre}
-                        onClick={() => setSelectedGenre(genre === selectedGenre ? "" : genre)}
+                        onClick={() => { handleGenreChange(genre); setShowFilters(false); }}
                         className={cn(
-                          "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                          "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
                           selectedGenre === genre
-                            ? "bg-[var(--accent)] text-[var(--primary)]"
-                            : "border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
+                            ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--primary)]"
+                            : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
                         )}
                       >
                         {genre}
@@ -677,19 +705,30 @@ export default function CatalogPage() {
 
                 {/* Price */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
-                    {t("catalog.priceRange")}
-                  </p>
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
+                    {t("catalog.filterPrice")}
+                  </h2>
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => { handlePriceRangeChange(null); setShowFilters(false); }}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+                        selectedPriceRange === null
+                          ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--primary)]"
+                          : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
+                      )}
+                    >
+                      {t("catalog.anyPrice")}
+                    </button>
                     {PRICE_RANGES.map((range, idx) => (
                       <button
                         key={range.label}
-                        onClick={() => setSelectedPriceRange(selectedPriceRange === idx ? null : idx)}
+                        onClick={() => { handlePriceRangeChange(idx); setShowFilters(false); }}
                         className={cn(
-                          "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                          "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
                           selectedPriceRange === idx
-                            ? "bg-[var(--accent)] text-[var(--primary)]"
-                            : "border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
+                            ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--primary)]"
+                            : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
                         )}
                       >
                         {range.label}
@@ -700,41 +739,12 @@ export default function CatalogPage() {
 
                 {hasActiveFilters && (
                   <button
-                    onClick={() => { clearFilters(); setSidebarOpen(false); }}
-                    className="text-sm text-[var(--accent)] font-medium hover:text-[var(--accent-hover)] transition-colors"
+                    onClick={() => { clearFilters(); setShowFilters(false); }}
+                    className="flex items-center gap-1.5 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors font-medium"
                   >
+                    <X className="h-3.5 w-3.5" />
                     {t("catalog.clearFilters")}
                   </button>
-                )}
-              </div>
-            )}
-
-            {/* Active filter chips */}
-            {hasActiveFilters && (
-              <div className="flex flex-wrap gap-2 mb-5">
-                {selectedGenre && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-light)] border border-[var(--accent)]/30 px-3 py-1 text-xs font-medium text-[var(--foreground)]">
-                    {selectedGenre}
-                    <button onClick={() => setSelectedGenre("")} aria-label="Remove genre filter">
-                      <X className="h-3 w-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" />
-                    </button>
-                  </span>
-                )}
-                {selectedPriceRange !== null && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-light)] border border-[var(--accent)]/30 px-3 py-1 text-xs font-medium text-[var(--foreground)]">
-                    {PRICE_RANGES[selectedPriceRange]?.label}
-                    <button onClick={() => setSelectedPriceRange(null)} aria-label="Remove price filter">
-                      <X className="h-3 w-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" />
-                    </button>
-                  </span>
-                )}
-                {debouncedSearch.trim() && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-light)] border border-[var(--accent)]/30 px-3 py-1 text-xs font-medium text-[var(--foreground)]">
-                    &ldquo;{debouncedSearch.trim()}&rdquo;
-                    <button onClick={() => setSearchQuery("")} aria-label="Remove search filter">
-                      <X className="h-3 w-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" />
-                    </button>
-                  </span>
                 )}
               </div>
             )}
@@ -742,22 +752,22 @@ export default function CatalogPage() {
             {/* Error state */}
             {error && (
               <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center mb-6">
-                <p className="text-sm text-red-600 font-medium">{error}</p>
+                <p className="text-sm font-medium text-red-600">{error}</p>
                 <button
                   onClick={() => setCurrentPage((p) => p)}
-                  className="mt-3 text-xs text-red-500 underline hover:text-red-700"
+                  className="mt-3 text-sm text-red-500 underline hover:text-red-700 transition-colors"
                 >
                   Try again
                 </button>
               </div>
             )}
 
-            {/* Loading skeletons */}
-            {loading && (
+            {/* Book grid / list */}
+            {loading ? (
               <div
                 className={cn(
                   viewMode === "grid"
-                    ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5"
+                    ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"
                     : "flex flex-col gap-4"
                 )}
               >
@@ -765,41 +775,33 @@ export default function CatalogPage() {
                   <BookCardSkeleton key={i} />
                 ))}
               </div>
-            )}
-
-            {/* Empty state */}
-            {!loading && !error && books.length === 0 && (
+            ) : books.length === 0 && !error ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="mb-4 rounded-full bg-[var(--accent-light)] p-5">
-                  <Search className="h-8 w-8 text-[var(--accent)]" />
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent-light)]">
+                  <Search className="h-7 w-7 text-[var(--accent)]" />
                 </div>
                 <h3 className="font-display text-xl font-bold text-[var(--foreground)] mb-2">
                   {t("catalog.noResults")}
                 </h3>
-                <p className="text-sm text-[var(--muted-foreground)] max-w-xs">
+                <p className="text-sm text-[var(--muted-foreground)] mb-6 max-w-xs">
                   {t("catalog.noResultsHint")}
                 </p>
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="mt-5 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors"
-                  >
-                    {t("catalog.clearFilters")}
-                  </button>
-                )}
+                <button
+                  onClick={clearFilters}
+                  className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors"
+                >
+                  {t("catalog.clearFilters")}
+                </button>
               </div>
-            )}
-
-            {/* Book grid / list */}
-            {!loading && !error && books.length > 0 && (
+            ) : (
               <motion.div
-                key={`${currentPage}-${sortBy}-${selectedGenre}-${selectedPriceRange}-${debouncedSearch}`}
+                key={`${selectedGenre}-${selectedPriceRange}-${sortBy}-${currentPage}-${debouncedSearch}`}
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
                 className={cn(
                   viewMode === "grid"
-                    ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5"
+                    ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"
                     : "flex flex-col gap-4"
                 )}
               >
@@ -814,93 +816,79 @@ export default function CatalogPage() {
             )}
 
             {/* Pagination */}
-            {!loading && !error && totalPages > 1 && (
+            {!loading && totalPages > 1 && (
               <div className="mt-10 flex items-center justify-center gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  aria-label={t("catalog.previous")}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--accent-light)] disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Previous page"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--foreground)] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {t("catalog.previous")}
                 </button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(
-                      (page) =>
-                        page === 1 ||
-                        page === totalPages ||
-                        Math.abs(page - currentPage) <= 1
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (page) =>
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - currentPage) <= 1
+                  )
+                  .reduce<(number | "...")[]>((acc, page, idx, arr) => {
+                    if (idx > 0 && typeof arr[idx - 1] === "number" && (page as number) - (arr[idx - 1] as number) > 1) {
+                      acc.push("...");
+                    }
+                    acc.push(page);
+                    return acc;
+                  }, [])
+                  .map((item, idx) =>
+                    item === "..." ? (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        className="flex h-9 w-9 items-center justify-center text-sm text-[var(--muted-foreground)]"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        onClick={() => setCurrentPage(item as number)}
+                        aria-label={`Page ${item}`}
+                        aria-current={currentPage === item ? "page" : undefined}
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-xl text-sm font-medium transition-colors",
+                          currentPage === item
+                            ? "bg-[var(--accent)] text-[var(--primary)] font-bold"
+                            : "border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                        )}
+                      >
+                        {item}
+                      </button>
                     )
-                    .reduce<(number | "...")[]>((acc, page, idx, arr) => {
-                      if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) {
-                        acc.push("...");
-                      }
-                      acc.push(page);
-                      return acc;
-                    }, [])
-                    .map((item, idx) =>
-                      item === "..." ? (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className="px-2 text-sm text-[var(--muted-foreground)]"
-                        >
-                          …
-                        </span>
-                      ) : (
-                        <button
-                          key={item}
-                          onClick={() => setCurrentPage(item as number)}
-                          aria-current={currentPage === item ? "page" : undefined}
-                          className={cn(
-                            "h-9 w-9 rounded-xl text-sm font-medium transition-colors",
-                            currentPage === item
-                              ? "bg-[var(--accent)] text-[var(--primary)] font-bold"
-                              : "border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--accent-light)]"
-                          )}
-                        >
-                          {item}
-                        </button>
-                      )
-                    )}
-                </div>
+                  )}
 
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  aria-label={t("catalog.next")}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--accent-light)] disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Next page"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--foreground)] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {t("catalog.next")}
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             )}
 
             {/* Free shipping nudge */}
-            <Reveal className="mt-12">
-              <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-light)] p-5 flex items-center gap-4">
-                <div className="shrink-0 rounded-full bg-[var(--accent)] p-3">
-                  <ShoppingCart className="h-5 w-5 text-[var(--primary)]" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--foreground)]">
-                    Free shipping on orders over ${FREE_SHIPPING_THRESHOLD}
-                  </p>
-                  <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    Add books to your cart and enjoy free delivery on qualifying orders.
+            {!loading && books.length > 0 && (
+              <Reveal>
+                <div className="mt-10 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-light)] px-6 py-4 flex items-center gap-3">
+                  <ShoppingCart className="h-5 w-5 text-[var(--accent)] shrink-0" />
+                  <p className="text-sm text-[var(--foreground)]">
+                    <span className="font-semibold">{t("catalog.freeShippingNudge", { threshold: FREE_SHIPPING_THRESHOLD })}</span>
                   </p>
                 </div>
-                <Link
-                  href="/cart"
-                  className="ml-auto shrink-0 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--accent)] hover:text-[var(--primary)] transition-colors"
-                >
-                  {t("catalog.viewCart")}
-                </Link>
-              </div>
-            </Reveal>
+              </Reveal>
+            )}
           </div>
         </div>
       </div>

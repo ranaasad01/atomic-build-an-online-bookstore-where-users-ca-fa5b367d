@@ -34,7 +34,7 @@ interface StoredOrder {
 }
 
 function generateEstimatedDelivery(method: string): string {
-  const today = new Date("2025-01-15");
+  const today = new Date();
   const days =
     method === "express" ? 2 : method === "standard" ? 5 : 7;
   const delivery = new Date(today);
@@ -51,25 +51,27 @@ function formatPrice(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-const EMPTY_FALLBACK: StoredOrder = {
-  orderNumber: "PT-000000",
-  items: [],
-  shipping: {
-    fullName: "",
-    email: "",
-    addressLine1: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "",
-    shippingMethod: "standard",
-  },
-  subtotal: 0,
-  tax: 0,
-  shippingCost: 0,
-  total: 0,
-  placedAt: new Date("2025-01-15").toISOString(),
-};
+function buildEmptyFallback(): StoredOrder {
+  return {
+    orderNumber: "PT-000000",
+    items: [],
+    shipping: {
+      fullName: "",
+      email: "",
+      addressLine1: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      shippingMethod: "standard",
+    },
+    subtotal: 0,
+    tax: 0,
+    shippingCost: 0,
+    total: 0,
+    placedAt: new Date().toISOString(),
+  };
+}
 
 export default function OrderConfirmationPage() {
   const t = useTranslations();
@@ -84,10 +86,10 @@ export default function OrderConfirmationPage() {
         const parsed = JSON.parse(raw) as StoredOrder;
         setOrder(parsed);
       } else {
-        setOrder(EMPTY_FALLBACK);
+        setOrder(buildEmptyFallback());
       }
     } catch {
-      setOrder(EMPTY_FALLBACK);
+      setOrder(buildEmptyFallback());
     }
   }, []);
 
@@ -137,260 +139,161 @@ export default function OrderConfirmationPage() {
               animate="visible"
               className="font-display text-3xl font-bold text-white md:text-4xl"
             >
-              {t("orderConfirmation.heading")}
+              {t("orderConfirmation.title")}
             </motion.h1>
             <motion.p
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.1 }}
               className="mt-3 text-white/70"
             >
-              {t("orderConfirmation.subheading")}
+              {t("orderConfirmation.subtitle")}
             </motion.p>
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.2 }}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white ring-1 ring-white/20"
             >
-              <ShoppingBag className="h-4 w-4 text-[var(--accent)]" />
-              {t("orderConfirmation.orderNumber")}{order.orderNumber}
+              <Package className="h-4 w-4 text-[var(--accent)]" />
+              {t("orderConfirmation.orderNumber")}: {order.orderNumber}
             </motion.div>
           </div>
         </section>
       </Reveal>
 
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        {/* Info Cards Row */}
+      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+        {/* Delivery estimate */}
         <Reveal>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="-mt-8 mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3"
-          >
-            {/* Shipping To */}
-            <motion.div
-              variants={fadeInUp}
-              className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-light)]">
-                <MapPin className="h-5 w-5 text-[var(--accent)]" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                  {t("orderConfirmation.shippingTo")}
-                </p>
-                {order.shipping.fullName ? (
-                  <>
-                    <p className="mt-1 text-sm font-semibold text-[var(--foreground)] truncate">
-                      {order.shipping.fullName}
-                    </p>
-                    <p className="text-xs text-[var(--muted-foreground)] truncate">
-                      {order.shipping.city}, {order.shipping.state}
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">—</p>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Estimated Delivery */}
-            <motion.div
-              variants={fadeInUp}
-              className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-light)]">
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-light)]">
                 <Calendar className="h-5 w-5 text-[var(--accent)]" />
               </div>
-              <div className="min-w-0">
+              <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                   {t("orderConfirmation.estimatedDelivery")}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-                  {estimatedDelivery}
-                </p>
-                <p className="text-xs text-[var(--muted-foreground)]">{shippingLabel}</p>
+                <p className="font-semibold text-[var(--foreground)]">{estimatedDelivery}</p>
               </div>
-            </motion.div>
-
-            {/* Package */}
-            <motion.div
-              variants={fadeInUp}
-              className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-light)]">
-                <Package className="h-5 w-5 text-[var(--accent)]" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                  Items
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-                  {order.items.reduce((sum, i) => sum + i.quantity, 0)} book
-                  {order.items.reduce((sum, i) => sum + i.quantity, 0) !== 1 ? "s" : ""}
-                </p>
-                <p className="text-xs text-[var(--muted-foreground)]">
-                  {order.items.length} title{order.items.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
+            </div>
+            <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+              {shippingLabel}
+            </span>
+          </div>
         </Reveal>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Left: Items */}
-          <div className="lg:col-span-2 space-y-6">
-            <Reveal>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
-                <div className="border-b border-[var(--border)] px-6 py-4">
-                  <h2 className="font-display text-lg font-bold text-[var(--foreground)]">
-                    {t("orderConfirmation.yourBooks")}
-                  </h2>
-                </div>
-
-                {order.items.length === 0 ? (
-                  <div className="px-6 py-10 text-center text-[var(--muted-foreground)] text-sm">
-                    No items in this order.
-                  </div>
-                ) : (
-                  <ul className="divide-y divide-[var(--border)]">
-                    {order.items.map((item) => (
-                      <li
-                        key={`${item.bookId}-${item.format}`}
-                        className="flex items-center gap-4 px-6 py-4"
-                      >
-                        <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--accent-light)]">
-                          <img
-                            src={item.coverImage}
-                            alt={item.title}
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--foreground)] truncate">
-                            {item.title}
-                          </p>
-                          <p className="text-xs text-[var(--muted-foreground)]">
-                            {item.author}
-                          </p>
-                          <p className="text-xs text-[var(--muted-foreground)] capitalize">
-                            {item.format} &middot; Qty {item.quantity}
-                          </p>
-                        </div>
-                        <p className="text-sm font-semibold text-[var(--foreground)] shrink-0">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+        {/* Order items */}
+        {order.items.length > 0 && (
+          <Reveal>
+            <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
+              <div className="border-b border-[var(--border)] px-5 py-4">
+                <h2 className="font-display text-lg font-bold text-[var(--foreground)]">
+                  {t("orderConfirmation.itemsOrdered")}
+                </h2>
               </div>
-            </Reveal>
-
-            {/* Shipping Details */}
-            {order.shipping.fullName && (
-              <Reveal>
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
-                  <div className="border-b border-[var(--border)] px-6 py-4">
-                    <h2 className="font-display text-lg font-bold text-[var(--foreground)]">
-                      Shipping Details
-                    </h2>
-                  </div>
-                  <div className="px-6 py-5 space-y-1 text-sm text-[var(--foreground)]">
-                    <p className="font-semibold">{order.shipping.fullName}</p>
-                    {order.shipping.email && (
-                      <p className="text-[var(--muted-foreground)]">{order.shipping.email}</p>
-                    )}
-                    <p>{order.shipping.addressLine1}</p>
-                    <p>
-                      {order.shipping.city}, {order.shipping.state} {order.shipping.postalCode}
+              <motion.ul
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+                className="divide-y divide-[var(--border)]"
+              >
+                {order.items.map((item) => (
+                  <motion.li
+                    key={`${item.bookId}-${item.format}`}
+                    variants={fadeInUp}
+                    className="flex items-center gap-4 px-5 py-4"
+                  >
+                    <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--accent-light)]">
+                      <img
+                        src={item.coverImage}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[var(--foreground)] line-clamp-1">{item.title}</p>
+                      <p className="text-sm text-[var(--muted-foreground)]">{item.author}</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {item.format} &middot; Qty {item.quantity}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-semibold text-[var(--foreground)]">
+                      {formatPrice(item.price * item.quantity)}
                     </p>
-                    <p>{order.shipping.country}</p>
-                  </div>
+                  </motion.li>
+                ))}
+              </motion.ul>
+              {/* Totals */}
+              <div className="border-t border-[var(--border)] bg-[var(--background)] px-5 py-4 space-y-2">
+                <div className="flex justify-between text-sm text-[var(--muted-foreground)]">
+                  <span>{t("orderConfirmation.subtotal")}</span>
+                  <span>{formatPrice(order.subtotal)}</span>
                 </div>
-              </Reveal>
-            )}
+                <div className="flex justify-between text-sm text-[var(--muted-foreground)]">
+                  <span>{t("orderConfirmation.shipping")}</span>
+                  <span>
+                    {order.shippingCost === 0
+                      ? t("orderConfirmation.free")
+                      : formatPrice(order.shippingCost)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm text-[var(--muted-foreground)]">
+                  <span>{t("orderConfirmation.tax")}</span>
+                  <span>{formatPrice(order.tax)}</span>
+                </div>
+                <div className="flex justify-between border-t border-[var(--border)] pt-2 font-bold text-[var(--foreground)]">
+                  <span>{t("orderConfirmation.total")}</span>
+                  <span className="text-[var(--accent)]">{formatPrice(order.total)}</span>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        )}
+
+        {/* Shipping address */}
+        {order.shipping.fullName && (
+          <Reveal>
+            <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]">
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="h-4 w-4 text-[var(--accent)]" />
+                <h2 className="font-display text-lg font-bold text-[var(--foreground)]">
+                  {t("orderConfirmation.shippingTo")}
+                </h2>
+              </div>
+              <p className="font-semibold text-[var(--foreground)]">{order.shipping.fullName}</p>
+              <p className="text-sm text-[var(--muted-foreground)]">{order.shipping.email}</p>
+              <p className="text-sm text-[var(--muted-foreground)] mt-1">
+                {order.shipping.addressLine1}
+              </p>
+              <p className="text-sm text-[var(--muted-foreground)]">
+                {[order.shipping.city, order.shipping.state, order.shipping.postalCode]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+              {order.shipping.country && (
+                <p className="text-sm text-[var(--muted-foreground)]">{order.shipping.country}</p>
+              )}
+            </div>
+          </Reveal>
+        )}
+
+        {/* CTA */}
+        <Reveal>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/catalog"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {t("orderConfirmation.continueShopping")}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-
-          {/* Right: Summary */}
-          <div className="space-y-6">
-            <Reveal>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
-                <div className="border-b border-[var(--border)] px-6 py-4">
-                  <h2 className="font-display text-lg font-bold text-[var(--foreground)]">
-                    {t("orderConfirmation.orderSummary")}
-                  </h2>
-                </div>
-                <div className="px-6 py-5 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[var(--muted-foreground)]">{t("cart.subtotal")}</span>
-                    <span className="font-medium text-[var(--foreground)]">{formatPrice(order.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[var(--muted-foreground)]">{t("cart.shipping")}</span>
-                    <span className="font-medium text-[var(--foreground)]">
-                      {order.shippingCost === 0 ? "Free" : formatPrice(order.shippingCost)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[var(--muted-foreground)]">{t("cart.tax")}</span>
-                    <span className="font-medium text-[var(--foreground)]">{formatPrice(order.tax)}</span>
-                  </div>
-                  <div className="border-t border-[var(--border)] pt-3 flex justify-between">
-                    <span className="font-semibold text-[var(--foreground)]">{t("cart.total")}</span>
-                    <span className="font-bold text-lg text-[var(--foreground)]">{formatPrice(order.total)}</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* CTA Buttons */}
-            <Reveal>
-              <div className="space-y-3">
-                <Link
-                  href="/catalog"
-                  className={cn(
-                    "flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200",
-                    "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white",
-                    "shadow-[0_1px_2px_rgba(0,0,0,0.08),0_4px_12px_-4px_rgba(200,169,110,0.4)]"
-                  )}
-                >
-                  {t("orderConfirmation.continueShopping")}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/"
-                  className={cn(
-                    "flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-semibold transition-all duration-200",
-                    "text-[var(--foreground)] hover:bg-[var(--accent-light)] hover:border-[var(--accent)]"
-                  )}
-                >
-                  {t("orderConfirmation.backHome")}
-                </Link>
-              </div>
-            </Reveal>
-
-            {/* Trust note */}
-            <Reveal>
-              <div className="flex items-center gap-2 rounded-xl bg-[var(--accent-light)] px-4 py-3">
-                <Star className="h-4 w-4 shrink-0 fill-[var(--accent)] text-[var(--accent)]" />
-                <p className="text-xs text-[var(--muted-foreground)] leading-snug">
-                  A confirmation email has been sent to{" "}
-                  <span className="font-semibold text-[var(--foreground)]">
-                    {order.shipping.email || "your email address"}
-                  </span>.
-                </p>
-              </div>
-            </Reveal>
-          </div>
-        </div>
+        </Reveal>
       </div>
     </main>
   );

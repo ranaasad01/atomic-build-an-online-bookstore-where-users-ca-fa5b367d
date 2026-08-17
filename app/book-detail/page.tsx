@@ -121,28 +121,28 @@ function LoadingSpinner() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
-        <p className="text-sm text-[var(--muted-foreground)]">Loading book details…</p>
+        <p className="text-sm text-[var(--muted-foreground)]">Loading book details...</p>
       </div>
     </div>
   );
 }
 
-// ─── Not Found ────────────────────────────────────────────────────────────────
+// ─── Book Not Found ───────────────────────────────────────────────────────────
 
 function BookNotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
-      <div className="text-center max-w-sm">
-        <BookOpen className="w-12 h-12 text-[var(--accent)] mx-auto mb-4" />
+      <div className="text-center max-w-md">
+        <BookOpen className="w-16 h-16 text-[var(--border)] mx-auto mb-4" />
         <h1 className="font-display text-2xl font-bold text-[var(--foreground)] mb-2">
           Book not found
         </h1>
         <p className="text-[var(--muted-foreground)] mb-6">
-          We couldn't find the book you were looking for. It may have been removed or the link is incorrect.
+          We couldn't find the book you're looking for. It may have been removed or the link is incorrect.
         </p>
         <Link
           href="/catalog"
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--accent-hover)] hover:text-white"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Catalog
@@ -152,14 +152,12 @@ function BookNotFound() {
   );
 }
 
-// ─── Inner page (needs useSearchParams) ──────────────────────────────────────
+// ─── Inner page (uses useSearchParams) ───────────────────────────────────────
 
-function BookDetailPageInner() {
+function BookDetailInner() {
   const t = useTranslations();
   const searchParams = useSearchParams();
   const bookId = searchParams.get("id") ?? "";
-
-  const supabase = createClient();
   const { addItem } = useCart();
 
   const [book, setBook] = useState<BookRow | null>(null);
@@ -167,11 +165,13 @@ function BookDetailPageInner() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const [selectedFormat, setSelectedFormat] = useState(FORMATS[1]);
   const [quantity, setQuantity] = useState(1);
-  const [selectedFormat, setSelectedFormat] = useState(FORMATS[1].id);
-  const [addedToCart, setAddedToCart] = useState(false);
+  const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
+  const [activeTab, setActiveTab] = useState<"description" | "details" | "reviews">("description");
 
+  // ── Fetch book + related books ──────────────────────────────────────────────
   useEffect(() => {
     if (!bookId) {
       setNotFound(true);
@@ -181,11 +181,14 @@ function BookDetailPageInner() {
 
     let cancelled = false;
 
-    async function fetchData() {
+    async function fetchBook() {
       setLoading(true);
       setNotFound(false);
 
       try {
+        const supabase = createClient();
+
+        // Fetch the main book
         const { data: bookData, error: bookError } = await supabase
           .from("books")
           .select("*")
@@ -203,217 +206,185 @@ function BookDetailPageInner() {
         setBook(bookData as BookRow);
 
         // Fetch related books by same genre
-        const { data: relatedData } = await supabase
+        const { data: related } = await supabase
           .from("books")
           .select("id, title, author, price, cover_image, rating, is_bestseller")
-          .eq("genre", bookData.genre)
-          .neq("id", bookData.id)
+          .eq("genre", (bookData as BookRow).genre)
+          .neq("id", bookId)
           .limit(4);
 
-        if (!cancelled) {
-          setRelatedBooks((relatedData as RelatedBook[]) ?? []);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Failed to fetch book:", err);
-          setNotFound(true);
-        }
+        if (cancelled) return;
+
+        setRelatedBooks((related as RelatedBook[]) ?? []);
+      } catch {
+        if (!cancelled) setNotFound(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
-    fetchData();
+    fetchBook();
 
     return () => {
       cancelled = true;
     };
   }, [bookId]);
 
-  const handleAddToCart = () => {
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  function handleAddToCart() {
     if (!book) return;
-    const format = FORMATS.find((f) => f.id === selectedFormat) ?? FORMATS[1];
-    const finalPrice = book.price + format.priceModifier;
     addItem({
       bookId: book.id,
       title: book.title,
       author: book.author,
-      price: finalPrice,
+      price: book.price + selectedFormat.priceModifier,
       coverImage: book.cover_image,
+      format: selectedFormat.label,
       quantity,
-      format: format.label,
     });
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
-  };
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
+
+  // ── Render states ───────────────────────────────────────────────────────────
 
   if (loading) return <LoadingSpinner />;
   if (notFound || !book) return <BookNotFound />;
 
-  const selectedFormatObj = FORMATS.find((f) => f.id === selectedFormat) ?? FORMATS[1];
-  const finalPrice = book.price + selectedFormatObj.priceModifier;
+  const finalPrice = book.price + selectedFormat.priceModifier;
   const inStock = book.stock_quantity > 0;
-  const lowStock = book.stock_quantity > 0 && book.stock_quantity <= 5;
-
-  const avgRating =
-    REVIEWS.reduce((sum, r) => sum + r.rating, 0) / REVIEWS.length;
+  const ratingCount = book.rating_count ?? REVIEWS.length;
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
       {/* Breadcrumb */}
-      <Reveal>
-        <div className="border-b border-[var(--border)] bg-[var(--card)]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-            <nav className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]" aria-label="Breadcrumb">
-              <Link href="/" className="hover:text-[var(--accent)] transition-colors">
-                Home
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <Link href="/catalog" className="hover:text-[var(--accent)] transition-colors">
-                Catalog
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-[var(--foreground)] font-medium line-clamp-1">
-                {book.title}
-              </span>
-            </nav>
-          </div>
+      <div className="border-b border-[var(--border)] bg-[var(--card)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <nav className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-[var(--accent)] transition-colors duration-200">Home</Link>
+            <ChevronRight className="w-3.5 h-3.5" />
+            <Link href="/catalog" className="hover:text-[var(--accent)] transition-colors duration-200">Catalog</Link>
+            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="text-[var(--foreground)] font-medium line-clamp-1">{book.title}</span>
+          </nav>
         </div>
-      </Reveal>
+      </div>
 
-      {/* Main content */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
-          {/* Left — Cover */}
-          <Reveal>
-            <div className="flex flex-col items-center lg:items-start gap-6">
-              <motion.div
-                variants={scaleIn}
-                initial="hidden"
-                animate="visible"
-                className="relative w-full max-w-sm mx-auto lg:mx-0"
-              >
+      {/* Main product section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16">
+          {/* Cover */}
+          <Reveal className="flex justify-center lg:justify-end">
+            <motion.div
+              variants={scaleIn}
+              initial="hidden"
+              animate="visible"
+              className="relative w-full max-w-sm"
+            >
+              {/* Decorative shadow */}
+              <div className="absolute -bottom-4 -right-4 w-full h-full rounded-2xl bg-[var(--accent)]/20 blur-xl" />
+              <div className="relative rounded-2xl overflow-hidden border border-[var(--border)] shadow-[0_8px_40px_rgba(26,26,46,0.18)]">
+                <img
+                  src={book.cover_image}
+                  alt={book.title}
+                  className="w-full aspect-[2/3] object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/images/book-placeholder.jpg";
+                  }}
+                />
                 {book.is_bestseller && (
-                  <div className="absolute -top-3 -left-3 z-10">
-                    <span className="flex items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)] shadow-md">
+                  <div className="absolute top-4 left-4">
+                    <span className="flex items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">
                       <Award className="w-3 h-3" />
                       Bestseller
                     </span>
                   </div>
                 )}
-                <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl border border-[var(--border)] shadow-[0_8px_40px_rgba(26,26,46,0.16)] bg-[var(--accent-light)]">
-                  <img
-                    src={book.cover_image}
-                    alt={book.title}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src =
-                        "/images/book-placeholder.jpg";
-                    }}
-                  />
+              </div>
+            </motion.div>
+          </Reveal>
+
+          {/* Info */}
+          <Reveal>
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="flex flex-col gap-5"
+            >
+              {/* Genre */}
+              <motion.div variants={fadeInUp}>
+                <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
+                  {book.genre}
+                </span>
+              </motion.div>
+
+              {/* Title & Author */}
+              <motion.div variants={fadeInUp}>
+                <h1 className="font-display text-3xl md:text-4xl font-bold text-[var(--foreground)] leading-tight mb-2">
+                  {book.title}
+                </h1>
+                <p className="text-lg text-[var(--muted-foreground)]">
+                  by <span className="font-medium text-[var(--foreground)]">{book.author}</span>
+                </p>
+              </motion.div>
+
+              {/* Rating */}
+              <motion.div variants={fadeInUp} className="flex items-center gap-3">
+                <StarRating rating={book.rating} size="md" />
+                <span className="text-sm font-semibold text-[var(--foreground)]">{book.rating.toFixed(1)}</span>
+                <span className="text-sm text-[var(--muted-foreground)]">
+                  ({ratingCount.toLocaleString("en-US")} reviews)
+                </span>
+              </motion.div>
+
+              {/* Price */}
+              <motion.div variants={fadeInUp} className="flex items-baseline gap-3">
+                <span className="font-display text-3xl font-bold text-[var(--foreground)]">
+                  {formatPrice(finalPrice)}
+                </span>
+                {selectedFormat.priceModifier !== 0 && (
+                  <span className="text-sm text-[var(--muted-foreground)] line-through">
+                    {formatPrice(book.price)}
+                  </span>
+                )}
+              </motion.div>
+
+              {/* Format selector */}
+              <motion.div variants={fadeInUp}>
+                <p className="text-sm font-semibold text-[var(--foreground)] mb-2">Format</p>
+                <div className="flex gap-2 flex-wrap">
+                  {FORMATS.map((fmt) => (
+                    <button
+                      key={fmt.id}
+                      onClick={() => setSelectedFormat(fmt)}
+                      className={cn(
+                        "rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-200",
+                        selectedFormat.id === fmt.id
+                          ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)] shadow-sm"
+                          : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)]/50 hover:text-[var(--foreground)]"
+                      )}
+                    >
+                      {fmt.label}
+                      {fmt.priceModifier > 0 && (
+                        <span className="ml-1 text-xs text-[var(--muted-foreground)]">
+                          +{formatPrice(fmt.priceModifier)}
+                        </span>
+                      )}
+                      {fmt.priceModifier < 0 && (
+                        <span className="ml-1 text-xs text-green-600">
+                          {formatPrice(fmt.priceModifier)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </motion.div>
 
-              {/* Trust badges */}
-              <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto lg:mx-0">
-                {[
-                  { icon: Truck, label: "Free shipping over $40" },
-                  { icon: RotateCcw, label: "30-day returns" },
-                  { icon: BookOpen, label: "Quality guaranteed" },
-                ].map(({ icon: Icon, label }) => (
-                  <div
-                    key={label}
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 text-center"
-                  >
-                    <Icon className="w-4 h-4 text-[var(--accent)]" />
-                    <span className="text-[10px] leading-tight text-[var(--muted-foreground)]">
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-
-          {/* Right — Details */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col gap-6"
-          >
-            {/* Genre + title */}
-            <motion.div variants={fadeInUp}>
-              <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
-                {book.genre}
-              </span>
-              <h1 className="mt-1 font-display text-3xl md:text-4xl font-bold leading-tight text-[var(--foreground)] text-balance">
-                {book.title}
-              </h1>
-              <p className="mt-2 text-lg text-[var(--muted-foreground)]">
-                by{" "}
-                <span className="font-medium text-[var(--foreground)]">
-                  {book.author}
-                </span>
-              </p>
-            </motion.div>
-
-            {/* Rating */}
-            <motion.div variants={fadeInUp} className="flex items-center gap-3">
-              <StarRating rating={book.rating} size="md" />
-              <span className="text-sm font-semibold text-[var(--foreground)]">
-                {book.rating.toFixed(1)}
-              </span>
-              {book.rating_count !== undefined && (
-                <span className="text-sm text-[var(--muted-foreground)]">
-                  ({book.rating_count.toLocaleString("en-US")} reviews)
-                </span>
-              )}
-            </motion.div>
-
-            {/* Price */}
-            <motion.div variants={fadeInUp}>
-              <span className="font-display text-3xl font-bold text-[var(--foreground)]">
-                {formatPrice(finalPrice)}
-              </span>
-            </motion.div>
-
-            {/* Format selector */}
-            <motion.div variants={fadeInUp} className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-[var(--foreground)]">
-                {t("bookDetail.format")}
-              </span>
-              <div className="flex gap-2">
-                {FORMATS.map((fmt) => (
-                  <button
-                    key={fmt.id}
-                    onClick={() => setSelectedFormat(fmt.id)}
-                    className={cn(
-                      "rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-200",
-                      selectedFormat === fmt.id
-                        ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)] shadow-sm"
-                        : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
-                    )}
-                  >
-                    {fmt.label}
-                    {fmt.priceModifier !== 0 && (
-                      <span className="ml-1 text-xs opacity-70">
-                        {fmt.priceModifier > 0
-                          ? `+$${fmt.priceModifier}`
-                          : `-$${Math.abs(fmt.priceModifier)}`}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Quantity + stock */}
-            <motion.div variants={fadeInUp} className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-[var(--foreground)]">
-                {t("bookDetail.quantity")}
-              </span>
-              <div className="flex items-center gap-4">
+              {/* Quantity + Add to cart */}
+              <motion.div variants={fadeInUp} className="flex items-center gap-3 flex-wrap">
+                {/* Quantity stepper */}
                 <div className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)] px-1 py-0.5">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -422,268 +393,257 @@ function BookDetailPageInner() {
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="w-8 text-center text-sm font-semibold tabular-nums">
-                    {quantity}
-                  </span>
+                  <span className="w-8 text-center text-sm font-semibold tabular-nums">{quantity}</span>
                   <button
-                    onClick={() =>
-                      setQuantity((q) =>
-                        Math.min(q + 1, book.stock_quantity)
-                      )
-                    }
+                    onClick={() => setQuantity((q) => q + 1)}
                     aria-label="Increase quantity"
                     className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <span
+
+                {/* Add to cart */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!inStock || added}
                   className={cn(
-                    "text-sm font-medium",
-                    inStock ? "text-green-600" : "text-red-500"
+                    "flex-1 flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200",
+                    !inStock
+                      ? "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
+                      : added
+                      ? "bg-green-600 text-white"
+                      : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white shadow-[0_2px_12px_rgba(200,169,110,0.35)]"
                   )}
                 >
-                  {!inStock
-                    ? t("bookDetail.outOfStock")
-                    : lowStock
-                    ? t("bookDetail.lowStock", { count: book.stock_quantity })
-                    : t("bookDetail.inStock")}
-                </span>
-              </div>
-            </motion.div>
-
-            {/* CTA buttons */}
-            <motion.div variants={fadeInUp} className="flex gap-3">
-              <button
-                onClick={handleAddToCart}
-                disabled={!inStock || addedToCart}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200",
-                  !inStock
-                    ? "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
-                    : addedToCart
-                    ? "bg-green-600 text-white"
-                    : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white shadow-[0_2px_12px_rgba(200,169,110,0.3)]"
-                )}
-              >
-                {addedToCart ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    {t("bookDetail.added")}
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4" />
-                    {t("bookDetail.addToCart")}
-                  </>
-                )}
-              </button>
-
-              <button
-                onClick={() => setWishlisted((w) => !w)}
-                aria-label={t("bookDetail.wishlist")}
-                className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-xl border transition-all duration-200",
-                  wishlisted
-                    ? "border-red-300 bg-red-50 text-red-500"
-                    : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-red-300 hover:text-red-400"
-                )}
-              >
-                <Heart
-                  className={cn(
-                    "w-5 h-5",
-                    wishlisted && "fill-red-500"
+                  {added ? (
+                    <><Check className="w-4 h-4" /> Added to Cart</>
+                  ) : !inStock ? (
+                    "Out of Stock"
+                  ) : (
+                    <><ShoppingCart className="w-4 h-4" /> Add to Cart</>
                   )}
-                />
-              </button>
+                </button>
 
-              <button
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator
-                      .share({ title: book.title, url: window.location.href })
-                      .catch(() => {});
-                  } else {
-                    navigator.clipboard
-                      .writeText(window.location.href)
-                      .catch(() => {});
-                  }
-                }}
-                aria-label={t("bookDetail.share")}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                {/* Wishlist */}
+                <button
+                  onClick={() => setWishlisted((w) => !w)}
+                  aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center rounded-xl border transition-all duration-200",
+                    wishlisted
+                      ? "border-red-300 bg-red-50 text-red-500"
+                      : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-red-300 hover:text-red-400"
+                  )}
+                >
+                  <Heart className={cn("w-4 h-4", wishlisted && "fill-current")} />
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: book.title, url: window.location.href }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(window.location.href).catch(() => {});
+                    }
+                  }}
+                  aria-label="Share this book"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-all duration-200 hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </motion.div>
+
+              {/* Trust badges */}
+              <motion.div
+                variants={fadeInUp}
+                className="grid grid-cols-3 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
               >
-                <Share2 className="w-5 h-5" />
-              </button>
-            </motion.div>
-
-            {/* Description */}
-            <motion.div variants={fadeInUp} className="border-t border-[var(--border)] pt-6">
-              <h2 className="font-display text-lg font-bold text-[var(--foreground)] mb-3">
-                About this book
-              </h2>
-              <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
-                {book.description}
-              </p>
-            </motion.div>
-
-            {/* Metadata */}
-            <motion.div
-              variants={fadeInUp}
-              className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
-            >
-              {[
-                { label: t("bookDetail.isbn"), value: book.isbn },
-                { label: t("bookDetail.publisher"), value: book.publisher },
-                {
-                  label: t("bookDetail.published"),
-                  value: book.published_at
-                    ? new Date(book.published_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : undefined,
-                },
-                {
-                  label: t("bookDetail.pages"),
-                  value: book.pages ? String(book.pages) : undefined,
-                },
-              ]
-                .filter((m) => m.value)
-                .map((m) => (
-                  <div key={m.label}>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                      {m.label}
-                    </dt>
-                    <dd className="mt-0.5 text-sm font-medium text-[var(--foreground)]">
-                      {m.value}
-                    </dd>
+                {[
+                  { icon: Truck, label: "Free shipping over $40" },
+                  { icon: RotateCcw, label: "30-day returns" },
+                  { icon: BookOpen, label: "Secure checkout" },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center gap-1.5 text-center">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-light)]">
+                      <Icon className="w-4 h-4 text-[var(--accent)]" />
+                    </div>
+                    <span className="text-[11px] text-[var(--muted-foreground)] leading-tight">{label}</span>
                   </div>
                 ))}
+              </motion.div>
+
+              {/* Stock indicator */}
+              {inStock && book.stock_quantity <= 10 && (
+                <motion.p variants={fadeInUp} className="text-sm text-amber-600 font-medium">
+                  Only {book.stock_quantity} left in stock — order soon.
+                </motion.p>
+              )}
             </motion.div>
-          </motion.div>
+          </Reveal>
         </div>
       </section>
 
-      {/* Reviews */}
-      <Reveal>
-        <section className="border-t border-[var(--border)] bg-[var(--card)] py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 flex items-center justify-between">
-              <h2 className="font-display text-2xl font-bold text-[var(--foreground)]">
-                {t("bookDetail.reviews")}
-              </h2>
-              <div className="flex items-center gap-2">
-                <StarRating rating={avgRating} size="md" />
-                <span className="text-sm font-semibold text-[var(--foreground)]">
-                  {avgRating.toFixed(1)}
-                </span>
-                <span className="text-sm text-[var(--muted-foreground)]">
-                  ({REVIEWS.length} reviews)
-                </span>
-              </div>
-            </div>
+      {/* Tabs: Description / Details / Reviews */}
+      <section className="border-t border-[var(--border)] bg-[var(--card)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Tab bar */}
+          <div className="flex gap-0 border-b border-[var(--border)] overflow-x-auto">
+            {(["description", "details", "reviews"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-6 py-4 text-sm font-semibold capitalize whitespace-nowrap border-b-2 transition-all duration-200",
+                  activeTab === tab
+                    ? "border-[var(--accent)] text-[var(--foreground)]"
+                    : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                )}
+              >
+                {tab === "reviews" ? `Reviews (${REVIEWS.length})` : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {REVIEWS.map((review) => (
-                <article
-                  key={review.id}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
+          {/* Tab content */}
+          <div className="py-8 max-w-3xl">
+            {activeTab === "description" && (
+              <Reveal>
+                <div className="prose prose-stone max-w-none">
+                  <p className="text-[var(--foreground)] leading-relaxed text-base">
+                    {book.description}
+                  </p>
+                </div>
+              </Reveal>
+            )}
+
+            {activeTab === "details" && (
+              <Reveal>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { label: "ISBN", value: book.isbn ?? "N/A" },
+                    { label: "Publisher", value: book.publisher ?? "N/A" },
+                    { label: "Published", value: book.published_at ? new Date(book.published_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "N/A" },
+                    { label: "Pages", value: book.pages ? book.pages.toLocaleString("en-US") : "N/A" },
+                    { label: "Genre", value: book.genre },
+                    { label: "Language", value: "English" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex flex-col gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-3">
+                      <dt className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">{label}</dt>
+                      <dd className="text-sm font-medium text-[var(--foreground)]">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Reveal>
+            )}
+
+            {activeTab === "reviews" && (
+              <Reveal>
+                <motion.div
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                  className="flex flex-col gap-6"
                 >
-                  <div className="flex items-center gap-3 mb-3">
+                  {REVIEWS.map((review) => (
+                    <motion.article
+                      key={review.id}
+                      variants={fadeInUp}
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-5"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        <img
+                          src={review.avatar}
+                          alt={review.name}
+                          className="w-10 h-10 rounded-full border border-[var(--border)] bg-[var(--accent-light)] flex-shrink-0"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-[var(--foreground)]">{review.name}</span>
+                            <span className="text-xs text-[var(--muted-foreground)]">{review.date}</span>
+                          </div>
+                          <StarRating rating={review.rating} />
+                        </div>
+                      </div>
+                      <h4 className="font-semibold text-sm text-[var(--foreground)] mb-1">{review.title}</h4>
+                      <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">{review.body}</p>
+                    </motion.article>
+                  ))}
+                </motion.div>
+              </Reveal>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Related Books */}
+      {relatedBooks.length > 0 && (
+        <section className="border-t border-[var(--border)] py-12 md:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Reveal>
+              <h2 className="font-display text-2xl font-bold text-[var(--foreground)] mb-8">
+                You might also like
+              </h2>
+            </Reveal>
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-80px" }}
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+            >
+              {relatedBooks.map((related) => (
+                <motion.article
+                  key={related.id}
+                  variants={fadeInUp}
+                  className="group relative flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.14)]"
+                >
+                  {related.is_bestseller && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--primary)]">
+                        Bestseller
+                      </span>
+                    </div>
+                  )}
+                  <Link href={`/book-detail?id=${related.id}`} className="block relative aspect-[2/3] overflow-hidden bg-[var(--accent-light)]">
                     <img
-                      src={review.avatar}
-                      alt={review.name}
-                      className="w-9 h-9 rounded-full border border-[var(--border)]"
+                      src={related.cover_image}
+                      alt={related.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/images/book-placeholder.jpg";
+                      }}
                     />
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--foreground)]">
-                        {review.name}
-                      </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        {review.date}
-                      </p>
+                  </Link>
+                  <div className="flex flex-col gap-1.5 p-3">
+                    <Link href={`/book-detail?id=${related.id}`}>
+                      <h3 className="font-display text-sm font-bold leading-snug text-[var(--foreground)] line-clamp-2 hover:text-[var(--accent)] transition-colors duration-200">
+                        {related.title}
+                      </h3>
+                    </Link>
+                    <p className="text-xs text-[var(--muted-foreground)]">{related.author}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <StarRating rating={related.rating} />
+                      <span className="text-sm font-bold text-[var(--foreground)]">
+                        {formatPrice(related.price)}
+                      </span>
                     </div>
                   </div>
-                  <StarRating rating={review.rating} />
-                  <h3 className="mt-2 text-sm font-semibold text-[var(--foreground)]">
-                    {review.title}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--muted-foreground)]">
-                    {review.body}
-                  </p>
-                </article>
+                </motion.article>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
-      </Reveal>
-
-      {/* Related books */}
-      {relatedBooks.length > 0 && (
-        <Reveal>
-          <section className="py-16">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <h2 className="font-display text-2xl font-bold text-[var(--foreground)] mb-8">
-                {t("bookDetail.relatedBooks")}
-              </h2>
-              <motion.div
-                variants={staggerContainer}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-80px" }}
-                className="grid grid-cols-2 sm:grid-cols-4 gap-4"
-              >
-                {relatedBooks.map((rb) => (
-                  <motion.article
-                    key={rb.id}
-                    variants={fadeInUp}
-                    className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.14)]"
-                  >
-                    <Link href={`/book-detail?id=${rb.id}`} className="block relative aspect-[2/3] overflow-hidden bg-[var(--accent-light)]">
-                      {rb.is_bestseller && (
-                        <span className="absolute top-2 left-2 z-10 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--primary)]">
-                          Bestseller
-                        </span>
-                      )}
-                      <img
-                        src={rb.cover_image}
-                        alt={rb.title}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            "/images/book-placeholder.jpg";
-                        }}
-                      />
-                    </Link>
-                    <div className="p-3">
-                      <Link href={`/book-detail?id=${rb.id}`}>
-                        <h3 className="font-display text-sm font-bold leading-snug text-[var(--foreground)] line-clamp-2 hover:text-[var(--accent)] transition-colors">
-                          {rb.title}
-                        </h3>
-                      </Link>
-                      <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-                        {rb.author}
-                      </p>
-                      <div className="mt-1.5 flex items-center justify-between">
-                        <StarRating rating={rb.rating} />
-                        <span className="text-sm font-bold text-[var(--foreground)]">
-                          {formatPrice(rb.price)}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.article>
-                ))}
-              </motion.div>
-            </div>
-          </section>
-        </Reveal>
       )}
     </main>
   );
 }
 
-// ─── Page export (wrapped in Suspense for useSearchParams) ───────────────────
+// ─── Page export (wraps inner in Suspense for useSearchParams) ────────────────
 
 export default function BookDetailPage() {
   return (
@@ -694,7 +654,7 @@ export default function BookDetailPage() {
         </div>
       }
     >
-      <BookDetailPageInner />
+      <BookDetailInner />
     </Suspense>
   );
 }
