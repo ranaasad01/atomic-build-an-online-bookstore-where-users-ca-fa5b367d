@@ -132,7 +132,8 @@
     "isbn": "ISBN",
     "publisher": "Publisher",
     "published": "Published",
-    "pages": "Pages"
+    "pages": "Pages",
+    "description": "About this book"
   },
   "orderConfirmation": {
     "heading": "Order Confirmed!",
@@ -151,7 +152,10 @@
     "subtotal": "Subtotal",
     "tax": "Tax",
     "title": "Order confirmed",
-    "total": "Total"
+    "total": "Total",
+    "deliverTo": "Deliver to",
+    "shippingAddress": "Shipping address",
+    "shippingMethod": "Shipping method"
   },
   "shipping-info": {
     "heading": "Shipping Information",

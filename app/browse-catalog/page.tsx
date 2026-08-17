@@ -125,9 +125,15 @@ function BookCard({ book, onAddToCart, addedId }: { book: Book; onAddToCart: (bo
             )}
           >
             <ShoppingCart className="h-3.5 w-3.5" />
-            {outOfStock ? "Out of stock" : isAdded ? "Added!" : "Add to cart"}
+            {outOfStock ? "Out of stock" : isAdded ? "Added!" : "Add"}
           </button>
         </div>
+
+        {book.stock_quantity > 0 && book.stock_quantity <= 5 && (
+          <p className="text-[10px] text-red-500 font-medium">
+            Only {book.stock_quantity} left
+          </p>
+        )}
       </div>
     </motion.article>
   );
@@ -146,7 +152,7 @@ function BookCardSkeleton() {
         <div className="h-3 bg-[var(--accent-light)] rounded w-1/4" />
         <div className="flex justify-between items-center pt-2">
           <div className="h-5 bg-[var(--accent-light)] rounded w-16" />
-          <div className="h-8 bg-[var(--accent-light)] rounded-xl w-24" />
+          <div className="h-8 bg-[var(--accent-light)] rounded-xl w-20" />
         </div>
       </div>
     </div>
@@ -162,95 +168,88 @@ export default function BrowseCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [inputValue, setInputValue] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
-  const [sortOption, setSortOption] = useState<SortOption>("bestsellers");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
 
-  // Debounce search input by 400ms
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
+
+  // Debounced search term that triggers the query
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      setSearchQuery(inputValue);
-    }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [inputValue]);
+      setDebouncedSearch(value);
+    }, 350);
+  }, []);
 
-  // Fetch books from Supabase
-  useEffect(() => {
-    let cancelled = false;
+  // ─── Supabase fetch ──────────────────────────────────────────────────────
 
-    async function fetchBooks() {
-      setLoading(true);
-      setError(null);
+  const fetchBooks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const supabase = createClient();
+      let query = supabase
+        .from("books")
+        .select(
+          "id, title, author, genre, price, rating, rating_count, cover_image, is_bestseller, is_featured, description, stock_quantity"
+        );
 
-      try {
-        const supabase = createClient();
-        let query = supabase
-          .from("books")
-          .select(
-            "id, title, author, genre, price, rating, rating_count, cover_image, is_bestseller, is_featured, description, stock_quantity"
-          );
-
-        if (searchQuery.trim()) {
-          query = query.or(
-            `title.ilike.%${searchQuery.trim()}%,author.ilike.%${searchQuery.trim()}%`
-          );
-        }
-
-        if (selectedGenre) {
-          query = query.eq("genre", selectedGenre);
-        }
-
-        switch (sortOption) {
-          case "bestsellers":
-            query = query.order("is_bestseller", { ascending: false });
-            break;
-          case "price-asc":
-            query = query.order("price", { ascending: true });
-            break;
-          case "price-desc":
-            query = query.order("price", { ascending: false });
-            break;
-          case "rating":
-            query = query.order("rating", { ascending: false });
-            break;
-          case "newest":
-            query = query.order("created_at", { ascending: false });
-            break;
-        }
-
-        const { data, error: sbError } = await query;
-
-        if (cancelled) return;
-
-        if (sbError) {
-          setError("Failed to load books. Please try again.");
-          setBooks([]);
-        } else {
-          setBooks((data as Book[]) ?? []);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError("An unexpected error occurred.");
-          setBooks([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      // Search: match title OR author
+      if (debouncedSearch.trim()) {
+        const term = `%${debouncedSearch.trim()}%`;
+        query = query.or(`title.ilike.${term},author.ilike.${term}`);
       }
+
+      // Genre filter
+      if (selectedGenre) {
+        query = query.eq("genre", selectedGenre);
+      }
+
+      // Sort
+      switch (sortBy) {
+        case "bestsellers":
+          query = query.eq("is_bestseller", true).order("rating", { ascending: false });
+          break;
+        case "price-asc":
+          query = query.order("price", { ascending: true });
+          break;
+        case "price-desc":
+          query = query.order("price", { ascending: false });
+          break;
+        case "rating":
+          query = query.order("rating", { ascending: false });
+          break;
+        case "newest":
+        default:
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+
+      const { data, error: supabaseError } = await query;
+
+      if (supabaseError) throw new Error(supabaseError.message);
+      setBooks((data as Book[]) ?? []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load books";
+      setError(message);
+      setBooks([]);
+    } finally {
+      setLoading(false);
     }
+  }, [debouncedSearch, selectedGenre, sortBy]);
 
+  useEffect(() => {
     fetchBooks();
+  }, [fetchBooks]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [searchQuery, selectedGenre, sortOption]);
+  // ─── Add to cart (localStorage) ──────────────────────────────────────────
 
   const handleAddToCart = useCallback((book: Book) => {
     try {
@@ -284,57 +283,77 @@ export default function BrowseCatalogPage() {
       localStorage.setItem("pageturner_cart", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
     } catch {
-      // ignore
+      // ignore storage errors
     }
     setAddedId(book.id);
     setTimeout(() => setAddedId(null), 1800);
   }, []);
 
-  const clearSearch = () => {
-    setInputValue("");
-    setSearchQuery("");
-  };
+  // ─── Clear filters ────────────────────────────────────────────────────────
 
-  const clearGenre = () => setSelectedGenre("");
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setDebouncedSearch("");
+    setSelectedGenre("");
+    setSortBy("newest");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
-  const activeFilterCount = (selectedGenre ? 1 : 0);
+  const hasActiveFilters = debouncedSearch || selectedGenre || sortBy !== "newest";
+
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+    { value: "newest", label: t("catalog.sortNewest") },
+    { value: "bestsellers", label: t("catalog.sortBestsellers") },
+    { value: "rating", label: t("catalog.sortRating") },
+    { value: "price-asc", label: t("catalog.sortPriceLow") },
+    { value: "price-desc", label: t("catalog.sortPriceHigh") },
+  ];
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      {/* Header */}
+    <main className="min-h-screen bg-[var(--background)] pb-24">
+      {/* ── Hero / Header ── */}
       <Reveal>
-        <section className="bg-[var(--primary)] py-12 md:py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <section className="relative overflow-hidden bg-[var(--primary)] py-14 md:py-20">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 50%, white 0%, transparent 60%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)",
+            }}
+          />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div>
-                <p className="text-[var(--accent)] text-sm font-semibold uppercase tracking-widest mb-2">
-                  {t("catalog.browseLabel") || "Browse"}
-                </p>
-                <h1 className="font-display text-3xl font-bold text-white md:text-4xl">
-                  {t("catalog.title") || "Our Collection"}
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/20 px-3 py-1">
+                  <BookOpen className="h-3.5 w-3.5 text-[var(--accent)]" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                    {t("catalog.eyebrow")}
+                  </span>
+                </div>
+                <h1 className="font-display text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl">
+                  {t("catalog.heading")}
                 </h1>
-                <p className="mt-2 text-white/60 text-sm">
-                  {loading
-                    ? "Loading books..."
-                    : `${books.length.toLocaleString("en-US")} book${books.length !== 1 ? "s" : ""} found`}
+                <p className="mt-2 text-base text-white/60 max-w-xl">
+                  {t("catalog.subheading")}
                 </p>
               </div>
 
-              {/* Search */}
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
+              {/* Search bar */}
+              <div className="relative w-full md:w-80 lg:w-96">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
                 <input
+                  ref={searchInputRef}
                   type="search"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Search titles or authors..."
-                  className="w-full rounded-xl border border-white/20 bg-white/10 pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200"
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t("catalog.searchPlaceholder")}
+                  className="w-full rounded-xl border border-white/20 bg-white/10 py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200"
                 />
-                {inputValue && (
+                {search && (
                   <button
-                    onClick={clearSearch}
-                    aria-label="Clear search"
+                    onClick={() => handleSearchChange("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                    aria-label="Clear search"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -345,91 +364,99 @@ export default function BrowseCatalogPage() {
         </section>
       </Reveal>
 
-      {/* Filters + Sort bar */}
+      {/* ── Filters bar ── */}
       <div className="sticky top-16 z-30 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 py-3 overflow-x-auto scrollbar-none">
-            {/* Filter toggle */}
+            {/* Genre pills */}
+            <button
+              onClick={() => setSelectedGenre("")}
+              className={cn(
+                "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
+                !selectedGenre
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-[var(--accent-light)] text-[var(--foreground)] hover:bg-[var(--border)]"
+              )}
+            >
+              {t("catalog.allGenres")}
+            </button>
+
+            {GENRES.slice(0, 8).map((genre) => (
+              <button
+                key={genre}
+                onClick={() => setSelectedGenre(selectedGenre === genre ? "" : genre)}
+                className={cn(
+                  "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
+                  selectedGenre === genre
+                    ? "bg-[var(--primary)] text-white"
+                    : "bg-[var(--accent-light)] text-[var(--foreground)] hover:bg-[var(--border)]"
+                )}
+              >
+                {genre}
+              </button>
+            ))}
+
+            {/* More genres toggle */}
             <button
               onClick={() => setShowFilters((v) => !v)}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-200",
+                "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 border",
                 showFilters
                   ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)]"
-                  : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                  : "border-[var(--border)] bg-transparent text-[var(--muted-foreground)] hover:border-[var(--accent)]"
               )}
             >
-              <Filter className="h-4 w-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-[var(--primary)]">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-
-            {/* Genre pills */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
-              <button
-                onClick={clearGenre}
+              <Filter className="h-3.5 w-3.5" />
+              {t("catalog.filters")}
+              <ChevronDown
                 className={cn(
-                  "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
-                  !selectedGenre
-                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--primary)]"
-                    : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
+                  "h-3 w-3 transition-transform duration-200",
+                  showFilters && "rotate-180"
                 )}
-              >
-                All
-              </button>
-              {GENRES.slice(0, 8).map((genre) => (
-                <button
-                  key={genre}
-                  onClick={() => setSelectedGenre(genre === selectedGenre ? "" : genre)}
-                  className={cn(
-                    "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
-                    selectedGenre === genre
-                      ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--primary)]"
-                      : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
-                  )}
-                >
-                  {genre}
-                </button>
-              ))}
-            </div>
+              />
+            </button>
 
             {/* Sort */}
             <div className="ml-auto shrink-0 relative">
               <select
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] pl-3 pr-8 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-all duration-200 cursor-pointer"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] py-1.5 pl-3 pr-8 text-xs font-semibold text-[var(--foreground)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 cursor-pointer transition-all duration-200"
               >
-                <option value="bestsellers">Bestsellers</option>
-                <option value="newest">Newest</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Top Rated</option>
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
             </div>
+
+            {/* Clear filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="shrink-0 flex items-center gap-1 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("catalog.clearFilters")}
+              </button>
+            )}
           </div>
 
-          {/* Expanded filter panel */}
+          {/* Expanded genre panel */}
           {showFilters && (
-            <div className="border-t border-[var(--border)] py-4">
+            <div className="pb-3">
               <div className="flex flex-wrap gap-2">
-                <p className="w-full text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1">
-                  Genre
-                </p>
-                {GENRES.map((genre) => (
+                {GENRES.slice(8).map((genre) => (
                   <button
                     key={genre}
-                    onClick={() => setSelectedGenre(genre === selectedGenre ? "" : genre)}
+                    onClick={() => setSelectedGenre(selectedGenre === genre ? "" : genre)}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
+                      "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
                       selectedGenre === genre
-                        ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--primary)]"
-                        : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)]"
+                        ? "bg-[var(--primary)] text-white"
+                        : "bg-[var(--accent-light)] text-[var(--foreground)] hover:bg-[var(--border)]"
                     )}
                   >
                     {genre}
@@ -441,79 +468,36 @@ export default function BrowseCatalogPage() {
         </div>
       </div>
 
-      {/* Active filters summary */}
-      {(selectedGenre || searchQuery) && (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-[var(--muted-foreground)] font-medium">Active filters:</span>
-            {searchQuery && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-light)] border border-[var(--accent)]/30 px-2.5 py-1 text-xs font-medium text-[var(--foreground)]">
-                Search: "{searchQuery}"
-                <button onClick={clearSearch} aria-label="Remove search filter">
-                  <X className="h-3 w-3 ml-0.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" />
-                </button>
-              </span>
-            )}
-            {selectedGenre && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-light)] border border-[var(--accent)]/30 px-2.5 py-1 text-xs font-medium text-[var(--foreground)]">
-                {selectedGenre}
-                <button onClick={clearGenre} aria-label="Remove genre filter">
-                  <X className="h-3 w-3 ml-0.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" />
-                </button>
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ── Book grid ── */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
+        {/* Result count */}
+        {!loading && !error && (
+          <p className="mb-6 text-sm text-[var(--muted-foreground)]">
+            {books.length === 0
+              ? t("catalog.noResults")
+              : `${books.length} ${t("catalog.books").toLowerCase()}`}
+          </p>
+        )}
 
-      {/* Book grid */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Error state */}
         {error && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BookOpen className="h-12 w-12 text-[var(--border)] mb-4" />
-            <p className="text-[var(--foreground)] font-semibold mb-1">Something went wrong</p>
-            <p className="text-sm text-[var(--muted-foreground)] mb-4">{error}</p>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <p className="text-[var(--muted-foreground)] text-sm">{error}</p>
             <button
-              onClick={() => {
-                setSearchQuery("");
-                setInputValue("");
-                setSelectedGenre("");
-                setSortOption("bestsellers");
-              }}
-              className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
+              onClick={fetchBooks}
+              className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors"
             >
-              Reset filters
+              Try again
             </button>
           </div>
         )}
 
-        {/* Loading skeletons */}
-        {loading && !error && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
             {Array.from({ length: 10 }).map((_, i) => (
               <BookCardSkeleton key={i} />
             ))}
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && !error && books.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BookOpen className="h-12 w-12 text-[var(--border)] mb-4" />
-            <p className="text-[var(--foreground)] font-semibold mb-1">No books found</p>
-            <p className="text-sm text-[var(--muted-foreground)] mb-4">
-              Try adjusting your search or filters.
-            </p>
-            <button
-              onClick={() => {
-                clearSearch();
-                clearGenre();
-              }}
-              className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
-            >
-              Clear filters
-            </button>
           </div>
         )}
 
@@ -523,7 +507,7 @@ export default function BrowseCatalogPage() {
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
           >
             {books.map((book) => (
               <BookCard
@@ -535,7 +519,32 @@ export default function BrowseCatalogPage() {
             ))}
           </motion.div>
         )}
+
+        {/* Empty state */}
+        {!loading && !error && books.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="w-16 h-16 rounded-full bg-[var(--accent-light)] flex items-center justify-center">
+              <BookOpen className="h-8 w-8 text-[var(--accent)]" />
+            </div>
+            <div className="text-center">
+              <p className="font-display text-lg font-bold text-[var(--foreground)]">
+                {t("catalog.noResults")}
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                {t("catalog.noResultsHint")}
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors"
+              >
+                {t("catalog.clearFilters")}
+              </button>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
