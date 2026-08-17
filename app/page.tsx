@@ -97,6 +97,23 @@ interface FeaturedBook {
   genre: string;
   cover_image: string;
   is_bestseller: boolean;
+  is_featured: boolean;
+  stock_quantity: number;
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function BookCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden animate-pulse">
+      <div className="aspect-[2/3] bg-[var(--accent-light)]" />
+      <div className="p-4 space-y-2">
+        <div className="h-4 bg-[var(--accent-light)] rounded w-3/4" />
+        <div className="h-3 bg-[var(--accent-light)] rounded w-1/2" />
+        <div className="h-3 bg-[var(--accent-light)] rounded w-1/4" />
+      </div>
+    </div>
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -109,370 +126,285 @@ export default function HomePage() {
   const [booksLoading, setBooksLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("books")
-      .select("*")
-      .eq("is_featured", true)
-      .limit(4)
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setFeaturedBooks(data as FeaturedBook[]);
+    let cancelled = false;
+
+    async function fetchFeaturedBooks() {
+      setBooksLoading(true);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("books")
+          .select("id, title, author, price, cover_image, rating, is_bestseller, is_featured, stock_quantity, genre")
+          .eq("is_featured", true)
+          .order("rating", { ascending: false })
+          .limit(6);
+
+        if (error) {
+          console.error("Failed to fetch featured books:", error);
+          if (!cancelled) setFeaturedBooks([]);
+          return;
         }
-        setBooksLoading(false);
-      });
+
+        if (!cancelled) {
+          setFeaturedBooks((data ?? []) as FeaturedBook[]);
+        }
+      } catch (err) {
+        console.error("Unexpected error fetching featured books:", err);
+        if (!cancelled) setFeaturedBooks([]);
+      } finally {
+        if (!cancelled) setBooksLoading(false);
+      }
+    }
+
+    fetchFeaturedBooks();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
     <div className="flex flex-col">
       {/* ── Hero ── */}
       <section
-        className="relative min-h-[92vh] flex items-center overflow-hidden"
-        style={{ background: "var(--primary)" }}
+        className="relative overflow-hidden bg-[var(--primary)] text-white"
+        aria-label="Hero"
       >
-        {/* Texture overlay */}
+        {/* Background texture */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          className="pointer-events-none absolute inset-0 opacity-10"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+              "radial-gradient(circle at 20% 50%, white 0%, transparent 60%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)",
           }}
         />
-        {/* Glow */}
-        <div
-          className="pointer-events-none absolute top-0 right-0 w-[600px] h-[600px] opacity-20"
-          style={{
-            background:
-              "radial-gradient(circle at 70% 30%, var(--accent) 0%, transparent 65%)",
-          }}
-        />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col gap-6"
-          >
-            <motion.div variants={fadeInUp}>
-              <span
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide uppercase"
-                style={{
-                  background: "rgba(200,169,110,0.15)",
-                  color: "var(--accent)",
-                  border: "1px solid rgba(200,169,110,0.3)",
-                }}
-              >
-                <Sparkles className="w-3 h-3" aria-hidden="true" />
-                New arrivals every week
-              </span>
-            </motion.div>
-
-            <motion.h1
-              variants={fadeInUp}
-              className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white tracking-tight text-balance"
-              style={{ fontFamily: "Playfair Display, Georgia, serif", lineHeight: 1.08 }}
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left: copy */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="flex flex-col gap-6"
             >
-              {APP_NAME}
-              <span
-                className="block mt-2"
-                style={{ color: "var(--accent)", fontStyle: "italic" }}
-              >
-                Every great story
-              </span>
-              <span className="block">begins here.</span>
-            </motion.h1>
-
-            <motion.p
-              variants={fadeInUp}
-              className="text-lg text-white/70 leading-relaxed max-w-md"
-            >
-              {APP_TAGLINE} Discover handpicked fiction, non-fiction, and everything in between — over 2,000 titles across 12 genres.
-            </motion.p>
-
-            {/* Hero bullets */}
-            {heroItems.length > 0 && (
-              <motion.ul variants={fadeInUp} className="flex flex-col gap-2">
-                {heroItems.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-white/60">
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: "var(--accent)" }}
-                    />
-                    {item}
-                  </li>
-                ))}
-              </motion.ul>
-            )}
-
-            <motion.div variants={fadeInUp} className="flex flex-wrap gap-3 pt-2">
-              <Link
-                href="/catalog"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                style={{
-                  background: "var(--accent)",
-                  color: "var(--primary)",
-                }}
-              >
-                Browse Catalog
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/cart"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold border border-white/20 text-white/80 hover:text-white hover:border-white/40 transition-all duration-300"
-              >
-                <ShoppingCart className="w-4 h-4" aria-hidden="true" />
-                View Cart
-              </Link>
-            </motion.div>
-          </motion.div>
-
-          {/* Right — Stats grid */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="hidden lg:grid grid-cols-2 gap-4"
-          >
-            {STATS.map((stat) => (
-              <motion.div
-                key={stat.label}
-                variants={scaleIn}
-                className="rounded-2xl p-6 flex flex-col gap-1"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <span
-                  className="text-3xl font-bold"
-                  style={{
-                    fontFamily: "Playfair Display, Georgia, serif",
-                    color: "var(--accent)",
-                  }}
-                >
-                  {stat.value}
+              <motion.div variants={fadeInUp}>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium text-white/90 backdrop-blur-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
+                  {APP_TAGLINE}
                 </span>
-                <span className="text-sm text-white/60">{stat.label}</span>
               </motion.div>
-            ))}
-          </motion.div>
-        </div>
 
-        {/* Bottom fade */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent, var(--background))",
-          }}
-        />
+              <motion.h1
+                variants={fadeInUp}
+                className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-balance"
+              >
+                Your next great read{" "}
+                <span className="text-[var(--accent)]">starts here.</span>
+              </motion.h1>
+
+              <motion.p
+                variants={fadeInUp}
+                className="text-lg text-white/70 leading-relaxed max-w-lg text-pretty"
+              >
+                Handpicked fiction, non-fiction, and everything in between. Over 50,000 titles across 12 genres, delivered to your door.
+              </motion.p>
+
+              {/* Bullet points from i18n */}
+              {heroItems.length > 0 && (
+                <motion.ul variants={fadeInUp} className="flex flex-col gap-2">
+                  {heroItems.map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-white/80">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex-shrink-0">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 12 12">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+
+              <motion.div variants={fadeInUp} className="flex flex-wrap gap-3 pt-2">
+                <Link
+                  href="/catalog"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white shadow-[0_4px_14px_rgba(200,169,110,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  Browse Catalog
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/catalog?genre=Fiction"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  Explore Fiction
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </motion.div>
+            </motion.div>
+
+            {/* Right: stats grid */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="hidden lg:grid grid-cols-2 gap-4"
+            >
+              {STATS.map((stat) => (
+                <motion.div
+                  key={stat.label}
+                  variants={scaleIn}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+                >
+                  <p className="font-display text-3xl font-bold text-[var(--accent)]">{stat.value}</p>
+                  <p className="mt-1 text-sm text-white/60">{stat.label}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
       </section>
 
       {/* ── Featured Books ── */}
-      <section className="py-20 md:py-28" style={{ background: "var(--background)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-28" aria-labelledby="featured-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <div className="flex items-end justify-between mb-12">
+            <div className="flex items-end justify-between mb-10">
               <div>
-                <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ color: "var(--accent)" }}
-                >
-                  Hand-picked
+                <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">
+                  Hand-picked for you
                 </p>
                 <h2
-                  className="text-4xl md:text-5xl font-bold tracking-tight text-balance"
-                  style={{ color: "var(--foreground)", fontFamily: "Playfair Display, Georgia, serif" }}
+                  id="featured-heading"
+                  className="font-display text-3xl sm:text-4xl font-bold text-[var(--foreground)] tracking-tight"
                 >
                   Featured Reads
                 </h2>
               </div>
               <Link
                 href="/catalog"
-                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium transition-colors duration-200"
-                style={{ color: "var(--accent)" }}
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors duration-200"
               >
                 View all
-                <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           </Reveal>
 
           {booksLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl overflow-hidden animate-pulse"
-                  style={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <div className="aspect-[3/4] bg-[var(--border)]" />
-                  <div className="p-4 flex flex-col gap-3">
-                    <div className="h-4 rounded bg-[var(--border)] w-3/4" />
-                    <div className="h-3 rounded bg-[var(--border)] w-1/2" />
-                    <div className="h-3 rounded bg-[var(--border)] w-1/4" />
-                    <div className="h-9 rounded-full bg-[var(--border)] mt-2" />
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <BookCardSkeleton key={i} />
               ))}
             </div>
           ) : featuredBooks.length === 0 ? (
-            <div className="text-center py-16">
-              <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--muted-foreground)" }} />
-              <p className="text-base" style={{ color: "var(--muted-foreground)" }}>
-                No featured books available right now.
-              </p>
-              <Link
-                href="/catalog"
-                className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200"
-                style={{ background: "var(--accent)", color: "var(--primary)" }}
-              >
-                Browse all books
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
-            </div>
+            <Reveal>
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <BookOpen className="h-12 w-12 text-[var(--border)] mb-4" aria-hidden="true" />
+                <p className="text-[var(--muted-foreground)] text-lg font-medium">No featured books yet.</p>
+                <p className="text-[var(--muted-foreground)] text-sm mt-1">Check back soon for our curated picks.</p>
+                <Link
+                  href="/catalog"
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
+                >
+                  Browse all books
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </Reveal>
           ) : (
             <motion.div
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-80px" }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6"
             >
               {featuredBooks.map((book) => (
-                <motion.div
+                <motion.article
                   key={book.id}
                   variants={fadeInUp}
-                  className="group rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1"
-                  style={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(0,0,0,0.10)",
-                  }}
+                  className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.14)]"
                 >
                   {/* Cover */}
-                  <Link href={`/book-detail?id=${book.id}`} className="block relative aspect-[3/4] overflow-hidden bg-[var(--accent-light)]">
+                  <Link
+                    href={`/book-detail?id=${book.id}`}
+                    className="relative block aspect-[2/3] overflow-hidden bg-[var(--accent-light)]"
+                    aria-label={`View ${book.title}`}
+                  >
                     <img
                       src={book.cover_image}
                       alt={book.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          `https://placehold.co/300x400/f0e6d3/5c5240?text=${encodeURIComponent(book.title)}`;
+                        (e.currentTarget as HTMLImageElement).src = "/images/book-placeholder.jpg";
                       }}
                     />
                     {book.is_bestseller && (
-                      <span
-                        className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-xs font-semibold"
-                        style={{ background: "var(--accent)", color: "var(--primary)" }}
-                      >
+                      <span className="absolute top-2 left-2 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--primary)]">
                         Bestseller
                       </span>
                     )}
                   </Link>
 
                   {/* Info */}
-                  <div className="flex flex-col flex-1 p-4 gap-2">
-                    <p className="text-xs font-medium" style={{ color: "var(--accent)" }}>
+                  <div className="flex flex-1 flex-col gap-1.5 p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                       {book.genre}
-                    </p>
+                    </span>
                     <Link href={`/book-detail?id=${book.id}`}>
-                      <h3
-                        className="text-base font-bold leading-snug line-clamp-2 hover:underline"
-                        style={{
-                          fontFamily: "Playfair Display, Georgia, serif",
-                          color: "var(--foreground)",
-                        }}
-                      >
+                      <h3 className="font-display text-sm font-bold leading-snug text-[var(--foreground)] line-clamp-2 hover:text-[var(--accent)] transition-colors duration-200">
                         {book.title}
                       </h3>
                     </Link>
-                    <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                      {book.author}
-                    </p>
+                    <p className="text-xs text-[var(--muted-foreground)] line-clamp-1">{book.author}</p>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 mt-auto">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "w-3.5 h-3.5",
-                            i < Math.round(book.rating)
-                              ? "fill-[var(--accent)] text-[var(--accent)]"
-                              : "text-[var(--border)]"
-                          )}
-                          aria-hidden="true"
-                        />
-                      ))}
-                      <span className="text-xs ml-1" style={{ color: "var(--muted-foreground)" }}>
-                        {book.rating?.toFixed(1)}
-                      </span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Star className="h-3 w-3 fill-[var(--accent)] text-[var(--accent)]" aria-hidden="true" />
+                      <span className="text-xs font-medium text-[var(--foreground)]">{book.rating.toFixed(1)}</span>
                     </div>
 
-                    {/* Price + CTA */}
-                    <div className="flex items-center justify-between mt-3">
-                      <span
-                        className="text-lg font-bold"
-                        style={{
-                          fontFamily: "Playfair Display, Georgia, serif",
-                          color: "var(--foreground)",
-                        }}
-                      >
-                        ${book.price?.toFixed(2)}
-                      </span>
+                    <div className="mt-auto pt-2 flex items-center justify-between">
+                      <span className="text-sm font-bold text-[var(--foreground)]">${book.price.toFixed(2)}</span>
                       <Link
                         href={`/book-detail?id=${book.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 hover:scale-105"
-                        style={{ background: "var(--accent)", color: "var(--primary)" }}
+                        className="rounded-lg bg-[var(--accent-light)] p-1.5 text-[var(--accent)] transition-colors duration-200 hover:bg-[var(--accent)] hover:text-[var(--primary)]"
+                        aria-label={`View ${book.title}`}
                       >
-                        <ShoppingCart className="w-3.5 h-3.5" aria-hidden="true" />
-                        Add
+                        <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
                       </Link>
                     </div>
                   </div>
-                </motion.div>
+                </motion.article>
               ))}
             </motion.div>
           )}
 
-          <Reveal className="mt-8 sm:hidden text-center">
+          <Reveal className="mt-8 flex justify-center sm:hidden">
             <Link
               href="/catalog"
-              className="inline-flex items-center gap-1.5 text-sm font-medium"
-              style={{ color: "var(--accent)" }}
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all duration-200"
             >
               View all books
-              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </Reveal>
         </div>
       </section>
 
-      {/* ── Genres Showcase ── */}
-      <section
-        className="py-20 md:py-28"
-        style={{ background: "var(--accent-light)" }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Genre Showcase ── */}
+      <section className="bg-[var(--accent-light)] py-20 md:py-28" aria-labelledby="genres-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="text-center mb-12">
-              <p
-                className="text-xs font-semibold uppercase tracking-widest mb-2"
-                style={{ color: "var(--accent)" }}
-              >
-                Explore by genre
+              <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">
+                Browse by genre
               </p>
               <h2
-                className="text-4xl md:text-5xl font-bold tracking-tight text-balance"
-                style={{ color: "var(--foreground)", fontFamily: "Playfair Display, Georgia, serif" }}
+                id="genres-heading"
+                className="font-display text-3xl sm:text-4xl font-bold text-[var(--foreground)] tracking-tight"
               >
-                Find Your Next Read
+                Find your next obsession
               </h2>
             </div>
           </Reveal>
@@ -482,36 +414,21 @@ export default function HomePage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-80px" }}
-            className="grid grid-cols-2 md:grid-cols-3 gap-4"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
           >
             {GENRES_SHOWCASE.map((genre) => (
-              <motion.div key={genre.label} variants={fadeInUp}>
+              <motion.div key={genre.label} variants={scaleIn}>
                 <Link
                   href={genre.href}
-                  className="flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 group"
-                  style={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 4px 12px -4px rgba(0,0,0,0.08)",
-                  }}
+                  className="group flex flex-col items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-center transition-all duration-200 hover:border-[var(--accent)] hover:shadow-[0_4px_20px_-4px_rgba(200,169,110,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
-                  <span className="text-3xl" aria-hidden="true">{genre.emoji}</span>
-                  <div>
-                    <p
-                      className="font-semibold text-sm leading-tight"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      {genre.label}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {genre.count.toLocaleString("en-US")} titles
-                    </p>
-                  </div>
-                  <ChevronRight
-                    className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    style={{ color: "var(--accent)" }}
-                    aria-hidden="true"
-                  />
+                  <span className="text-3xl" role="img" aria-label={genre.label}>{genre.emoji}</span>
+                  <span className="font-display text-sm font-bold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors duration-200">
+                    {genre.label}
+                  </span>
+                  <span className="text-xs text-[var(--muted-foreground)]">
+                    {genre.count.toLocaleString("en-US")} titles
+                  </span>
                 </Link>
               </motion.div>
             ))}
@@ -520,25 +437,16 @@ export default function HomePage() {
       </section>
 
       {/* ── Value Props ── */}
-      <section className="py-20 md:py-28" style={{ background: "var(--primary)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-28" aria-labelledby="value-props-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <div className="text-center mb-12">
-              <p
-                className="text-xs font-semibold uppercase tracking-widest mb-2"
-                style={{ color: "var(--accent)" }}
-              >
-                Why PageTurner
-              </p>
-              <h2
-                className="text-4xl md:text-5xl font-bold tracking-tight text-white text-balance"
-                style={{ fontFamily: "Playfair Display, Georgia, serif" }}
-              >
-                Reading, Made Easy
-              </h2>
-            </div>
+            <h2
+              id="value-props-heading"
+              className="sr-only"
+            >
+              Why shop with PageTurner
+            </h2>
           </Reveal>
-
           <motion.div
             variants={staggerContainer}
             initial="hidden"
@@ -546,32 +454,24 @@ export default function HomePage() {
             viewport={{ once: true, margin: "-80px" }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
-            {VALUE_PROPS.map((vp) => {
-              const Icon = vp.icon;
+            {VALUE_PROPS.map((prop) => {
+              const Icon = prop.icon;
               return (
                 <motion.div
-                  key={vp.title}
+                  key={prop.title}
                   variants={fadeInUp}
-                  className="flex flex-col gap-4 p-6 rounded-2xl"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
+                  className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
                 >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "rgba(200,169,110,0.15)" }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: "var(--accent)" }} aria-hidden="true" />
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent-light)]">
+                    <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3
-                      className="text-base font-semibold text-white mb-1"
-                      style={{ fontFamily: "Playfair Display, Georgia, serif" }}
-                    >
-                      {vp.title}
+                    <h3 className="font-display text-base font-bold text-[var(--foreground)] mb-1">
+                      {prop.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-white/60">{vp.description}</p>
+                    <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
+                      {prop.description}
+                    </p>
                   </div>
                 </motion.div>
               );
@@ -581,21 +481,18 @@ export default function HomePage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section className="py-20 md:py-28" style={{ background: "var(--background)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="bg-[var(--primary)] py-20 md:py-28" aria-labelledby="testimonials-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="text-center mb-12">
-              <p
-                className="text-xs font-semibold uppercase tracking-widest mb-2"
-                style={{ color: "var(--accent)" }}
-              >
+              <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)] mb-2">
                 Reader stories
               </p>
               <h2
-                className="text-4xl md:text-5xl font-bold tracking-tight text-balance"
-                style={{ color: "var(--foreground)", fontFamily: "Playfair Display, Georgia, serif" }}
+                id="testimonials-heading"
+                className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight"
               >
-                Loved by Readers
+                Loved by readers everywhere
               </h2>
             </div>
           </Reveal>
@@ -607,52 +504,46 @@ export default function HomePage() {
             viewport={{ once: true, margin: "-80px" }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            {TESTIMONIALS.map((t) => (
-              <motion.div
-                key={t.id}
+            {TESTIMONIALS.map((testimonial) => (
+              <motion.figure
+                key={testimonial.id}
                 variants={fadeInUp}
-                className="flex flex-col gap-4 p-6 rounded-2xl"
-                style={{
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(0,0,0,0.10)",
-                }}
+                className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
               >
-                {/* Stars */}
-                <div className="flex gap-0.5">
-                  {Array.from({ length: t.rating }).map((_, i) => (
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <Star
-                      key={i}
-                      className="w-4 h-4 fill-[var(--accent)] text-[var(--accent)]"
+                      key={star}
+                      className={cn(
+                        "h-4 w-4",
+                        star <= testimonial.rating
+                          ? "fill-[var(--accent)] text-[var(--accent)]"
+                          : "fill-transparent text-white/20"
+                      )}
                       aria-hidden="true"
                     />
                   ))}
                 </div>
-                <p
-                  className="text-sm leading-relaxed flex-1"
-                  style={{ color: "var(--muted-foreground)" }}
-                >
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="flex items-center gap-3 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+                <blockquote>
+                  <p className="text-sm text-white/80 leading-relaxed italic">
+                    &ldquo;{testimonial.quote}&rdquo;
+                  </p>
+                </blockquote>
+                <figcaption className="flex items-center gap-3 mt-auto pt-2 border-t border-white/10">
                   <img
-                    src={t.avatar}
-                    alt={t.name}
-                    className="w-9 h-9 rounded-full"
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="h-9 w-9 rounded-full border border-white/20"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = "none";
                     }}
                   />
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-                      {t.name}
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                      {t.location}
-                    </p>
+                    <p className="text-sm font-semibold text-white">{testimonial.name}</p>
+                    <p className="text-xs text-white/50">{testimonial.location}</p>
                   </div>
-                </div>
-              </motion.div>
+                </figcaption>
+              </motion.figure>
             ))}
           </motion.div>
         </div>
@@ -660,40 +551,33 @@ export default function HomePage() {
 
       {/* ── CTA Banner ── */}
       <Reveal>
-        <section
-          className="py-20 md:py-28 relative overflow-hidden"
-          style={{ background: "var(--accent)" }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 50%, white 0%, transparent 60%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)",
-            }}
-          />
-          <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <BookOpen
-              className="w-12 h-12 mx-auto mb-6"
-              style={{ color: "var(--primary)" }}
-              aria-hidden="true"
-            />
-            <h2
-              className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-balance"
-              style={{ color: "var(--primary)", fontFamily: "Playfair Display, Georgia, serif" }}
-            >
-              Start Your Next Chapter
-            </h2>
-            <p className="text-base leading-relaxed mb-8" style={{ color: "rgba(26,26,46,0.75)" }}>
-              Join over 120,000 readers who trust PageTurner for their next great read. Free shipping on orders over ${FREE_SHIPPING_THRESHOLD}.
-            </p>
-            <Link
-              href="/catalog"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-base font-semibold transition-all duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ background: "var(--primary)", color: "white" }}
-            >
-              Browse the Catalog
-              <ArrowRight className="w-5 h-5" aria-hidden="true" />
-            </Link>
+        <section className="py-20 md:py-28">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-10 md:p-16 shadow-[0_8px_40px_rgba(26,26,46,0.1)] relative overflow-hidden">
+              <div
+                className="pointer-events-none absolute inset-0 opacity-30"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(circle at 70% 30%, var(--accent-light) 0%, transparent 60%)",
+                }}
+              />
+              <div className="relative">
+                <BookOpen className="mx-auto h-10 w-10 text-[var(--accent)] mb-4" aria-hidden="true" />
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--foreground)] tracking-tight mb-4 text-balance">
+                  Ready to find your next great read?
+                </h2>
+                <p className="text-[var(--muted-foreground)] text-lg leading-relaxed mb-8 max-w-xl mx-auto text-pretty">
+                  Browse over 50,000 titles across every genre. Free shipping on orders over ${FREE_SHIPPING_THRESHOLD}.
+                </p>
+                <Link
+                  href="/catalog"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-8 py-3.5 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white shadow-[0_4px_14px_rgba(200,169,110,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  Start browsing
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </Reveal>

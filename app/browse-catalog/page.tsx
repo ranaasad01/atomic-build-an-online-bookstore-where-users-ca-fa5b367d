@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -107,60 +107,65 @@ function BookCard({ book, onAddToCart, addedId }: { book: Book; onAddToCart: (bo
 
         <StarRating rating={book.rating} count={book.rating_count} />
 
-        <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 leading-relaxed">
-          {book.description}
-        </p>
-
         <div className="mt-auto flex items-center justify-between pt-2">
           <span className="font-display text-lg font-bold text-[var(--foreground)]">
             ${book.price.toFixed(2)}
           </span>
-          <span
+          <button
+            onClick={() => onAddToCart(book)}
+            disabled={outOfStock || isAdded}
+            aria-label={`Add ${book.title} to cart`}
             className={cn(
-              "text-xs font-medium",
-              book.stock_quantity > 5
-                ? "text-emerald-600"
-                : book.stock_quantity > 0
-                ? "text-amber-600"
-                : "text-red-500"
+              "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200",
+              outOfStock
+                ? "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
+                : isAdded
+                ? "bg-green-600 text-white"
+                : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white"
             )}
           >
-            {book.stock_quantity === 0
-              ? "Out of stock"
-              : book.stock_quantity <= 5
-              ? `Only ${book.stock_quantity} left`
-              : "In stock"}
-          </span>
+            <ShoppingCart className="h-3.5 w-3.5" />
+            {outOfStock ? "Out of Stock" : isAdded ? "Added!" : "Add to Cart"}
+          </button>
         </div>
 
-        <button
-          onClick={() => onAddToCart(book)}
-          disabled={outOfStock || isAdded}
-          className={cn(
-            "mt-1 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
-            outOfStock
-              ? "cursor-not-allowed bg-[var(--border)] text-[var(--muted-foreground)]"
-              : isAdded
-              ? "bg-emerald-600 text-white"
-              : "bg-[var(--primary)] text-white hover:bg-[var(--accent)] hover:text-[var(--primary)]"
-          )}
-        >
-          {isAdded ? (
-            <>
-              <BookOpen className="h-4 w-4" />
-              Added to Cart
-            </>
-          ) : outOfStock ? (
-            "Out of Stock"
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" />
-              Add to Cart
-            </>
-          )}
-        </button>
+        {book.stock_quantity > 0 && book.stock_quantity <= 5 && (
+          <p className="text-[10px] text-amber-600 font-medium">
+            Only {book.stock_quantity} left
+          </p>
+        )}
       </div>
     </motion.article>
+  );
+}
+
+// ─── Loading Skeleton ─────────────────────────────────────────────────────────
+
+function BookCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden animate-pulse">
+      <div className="aspect-[2/3] bg-[var(--accent-light)]" />
+      <div className="p-4 space-y-3">
+        <div className="h-3 bg-[var(--accent-light)] rounded w-1/3" />
+        <div className="h-4 bg-[var(--accent-light)] rounded w-3/4" />
+        <div className="h-3 bg-[var(--accent-light)] rounded w-1/2" />
+        <div className="h-3 bg-[var(--accent-light)] rounded w-1/4" />
+        <div className="flex items-center justify-between pt-2">
+          <div className="h-5 bg-[var(--accent-light)] rounded w-12" />
+          <div className="h-8 bg-[var(--accent-light)] rounded-xl w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: 9 }).map((_, i) => (
+        <BookCardSkeleton key={i} />
+      ))}
+    </div>
   );
 }
 
@@ -169,45 +174,97 @@ function BookCard({ book, onAddToCart, addedId }: { book: Book; onAddToCart: (bo
 export default function BrowseCatalogPage() {
   const t = useTranslations();
 
+  // ── Filter state ──
+  const [search, setSearch] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("bestsellers");
+  const [priceMin, setPriceMin] = useState<number>(0);
+  const [priceMax, setPriceMax] = useState<number>(9999);
+  const [showFilters, setShowFilters] = useState(false);
+
   // ── Data state ──
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // ── Filter / sort state ──
-  const [search, setSearch] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string>("All");
-  const [sortBy, setSortBy] = useState<SortOption>("bestsellers");
-  const [maxPrice, setMaxPrice] = useState<number>(50);
-  const [showFilters, setShowFilters] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [addedId, setAddedId] = useState<string | null>(null);
 
-  // ── Fetch from Supabase ──
-  useEffect(() => {
-    const supabase = createClient();
-    async function fetchBooks() {
-      setLoading(true);
-      setFetchError(null);
-      try {
-        const { data, error } = await supabase.from("books").select("*");
-        if (error) throw new Error(error.message);
-        setBooks((data as Book[]) ?? []);
-      } catch (err) {
-        setFetchError(err instanceof Error ? err.message : "Failed to load books.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchBooks();
-  }, []);
+  // ── Fetch from Supabase ───────────────────────────────────────────────────
+  const fetchBooks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const supabase = createClient();
+      let query = supabase
+        .from("books")
+        .select(
+          "id, title, author, genre, price, rating, rating_count, cover_image, is_bestseller, is_featured, description, stock_quantity"
+        );
 
-  // ── Cart helper ──
+      // Genre filter
+      if (selectedGenre) {
+        query = query.eq("genre", selectedGenre);
+      }
+
+      // Search filter
+      if (search.trim()) {
+        const q = search.trim();
+        query = query.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+      }
+
+      // Price range filter
+      if (priceMin > 0) {
+        query = query.gte("price", priceMin);
+      }
+      if (priceMax < 9999) {
+        query = query.lte("price", priceMax);
+      }
+
+      // Sort
+      switch (sortBy) {
+        case "bestsellers":
+          query = query.order("is_bestseller", { ascending: false });
+          break;
+        case "price-asc":
+          query = query.order("price", { ascending: true });
+          break;
+        case "price-desc":
+          query = query.order("price", { ascending: false });
+          break;
+        case "rating":
+          query = query.order("rating", { ascending: false });
+          break;
+        case "newest":
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+
+      const { data, error: supabaseError } = await query;
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      setBooks((data as Book[]) ?? []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load books";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, selectedGenre, sortBy, priceMin, priceMax]);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
+
+  // ── Add to cart (localStorage) ────────────────────────────────────────────
   const handleAddToCart = useCallback((book: Book) => {
     try {
       const raw = localStorage.getItem("pageturner_cart");
       const cart = raw ? JSON.parse(raw) : [];
       const existing = cart.find(
-        (i: { bookId: string; format: string }) => i.bookId === book.id && i.format === "Paperback"
+        (i: { bookId: string; format: string }) =>
+          i.bookId === book.id && i.format === "Paperback"
       );
       let updated;
       if (existing) {
@@ -231,110 +288,101 @@ export default function BrowseCatalogPage() {
         ];
       }
       localStorage.setItem("pageturner_cart", JSON.stringify(updated));
-      setAddedId(book.id);
-      setTimeout(() => setAddedId(null), 1800);
+      window.dispatchEvent(new Event("storage"));
     } catch {
       // ignore storage errors
     }
+    setAddedId(book.id);
+    setTimeout(() => setAddedId(null), 1800);
   }, []);
 
-  // ── Derived / filtered list ──
-  const filtered = useMemo(() => {
-    let result = [...books];
+  // ── Price range presets ───────────────────────────────────────────────────
+  const PRICE_PRESETS = [
+    { label: "Any price", min: 0, max: 9999 },
+    { label: "Under $10", min: 0, max: 10 },
+    { label: "$10 – $15", min: 10, max: 15 },
+    { label: "$15 – $20", min: 15, max: 20 },
+    { label: "Over $20", min: 20, max: 9999 },
+  ];
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (b) =>
-          b.title.toLowerCase().includes(q) ||
-          b.author.toLowerCase().includes(q) ||
-          b.genre.toLowerCase().includes(q)
-      );
-    }
+  const activePriceLabel =
+    PRICE_PRESETS.find((p) => p.min === priceMin && p.max === priceMax)?.label ?? "Custom";
 
-    if (selectedGenre !== "All") {
-      result = result.filter((b) => b.genre === selectedGenre);
-    }
-
-    result = result.filter((b) => b.price <= maxPrice);
-
-    switch (sortBy) {
-      case "bestsellers":
-        result = result.sort((a, b) => (b.is_bestseller ? 1 : 0) - (a.is_bestseller ? 1 : 0));
-        break;
-      case "price-asc":
-        result = result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc":
-        result = result.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        result = result.sort((a, b) => b.rating - a.rating);
-        break;
-      case "newest":
-        // keep insertion order as proxy for newest
-        break;
-    }
-
-    return result;
-  }, [books, search, selectedGenre, sortBy, maxPrice]);
-
-  const clearFilters = useCallback(() => {
+  const clearFilters = () => {
     setSearch("");
-    setSelectedGenre("All");
+    setSelectedGenre("");
     setSortBy("bestsellers");
-    setMaxPrice(50);
-  }, []);
+    setPriceMin(0);
+    setPriceMax(9999);
+  };
 
   const hasActiveFilters =
-    search.trim() !== "" || selectedGenre !== "All" || maxPrice < 50;
+    search !== "" ||
+    selectedGenre !== "" ||
+    sortBy !== "bestsellers" ||
+    priceMin !== 0 ||
+    priceMax !== 9999;
 
-  // ── Render ──
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+    { value: "bestsellers", label: "Bestsellers" },
+    { value: "rating", label: "Top Rated" },
+    { value: "price-asc", label: "Price: Low to High" },
+    { value: "price-desc", label: "Price: High to Low" },
+    { value: "newest", label: "Newest" },
+  ];
+
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      {/* ── Hero ── */}
+    <main className="min-h-screen bg-[var(--background)]">
+      {/* ── Hero banner ── */}
       <Reveal>
-        <section className="bg-[var(--primary)] py-14 md:py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
-                Our Collection
-              </p>
-              <h1
-                className="font-display text-4xl font-bold tracking-tight text-white md:text-5xl"
-                style={{ fontFamily: "Playfair Display, Georgia, serif" }}
-              >
-                Browse Every Title
-              </h1>
-              <p className="mt-4 text-base leading-relaxed text-white/70">
-                Thousands of books across every genre. Use the filters below to find your next great read.
-              </p>
+        <section className="relative overflow-hidden bg-[var(--primary)] py-14 md:py-20">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 50%, white 0%, transparent 60%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)",
+            }}
+          />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)]">
+                <BookOpen className="h-5 w-5 text-[var(--primary)]" />
+              </div>
+              <span className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">
+                Browse Catalog
+              </span>
             </div>
+            <h1 className="font-display text-3xl font-bold text-white md:text-5xl tracking-tight text-balance">
+              Find Your Next Great Read
+            </h1>
+            <p className="mt-3 max-w-xl text-white/70 leading-relaxed">
+              Thousands of titles across every genre. Use the filters below to discover your perfect book.
+            </p>
           </div>
         </section>
       </Reveal>
 
-      {/* ── Search + Controls ── */}
+      {/* ── Filters bar ── */}
       <div className="sticky top-16 z-30 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:gap-4">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by title, author, or genre…"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-2.5 pl-9 pr-9 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200"
+                placeholder="Search title or author…"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] pl-9 pr-4 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)] transition-all duration-200"
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   aria-label="Clear search"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
@@ -344,16 +392,14 @@ export default function BrowseCatalogPage() {
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] py-2.5 pl-4 pr-9 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200 cursor-pointer"
+                className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] pl-3 pr-8 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)] transition-all duration-200 cursor-pointer"
               >
-                <option value="All">All Genres</option>
+                <option value="">All Genres</option>
                 {GENRES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
+                  <option key={g} value={g}>{g}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
             </div>
 
             {/* Sort select */}
@@ -361,142 +407,120 @@ export default function BrowseCatalogPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] py-2.5 pl-4 pr-9 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all duration-200 cursor-pointer"
+                className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--card)] pl-3 pr-8 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)] transition-all duration-200 cursor-pointer"
               >
-                <option value="bestsellers">Bestsellers</option>
-                <option value="rating">Top Rated</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="newest">Newest</option>
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
             </div>
 
             {/* Filter toggle */}
             <button
               onClick={() => setShowFilters((v) => !v)}
               className={cn(
-                "flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all duration-200",
+                "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-200",
                 showFilters
-                  ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--primary)]"
-                  : "border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:border-[var(--accent)]"
+                  ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)]"
+                  : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />
               Filters
               {hasActiveFilters && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-[var(--primary)]">
+                <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-[var(--primary)]">
                   !
                 </span>
               )}
             </button>
+
+            {/* Clear filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors duration-200"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear
+              </button>
+            )}
           </div>
 
-          {/* Expanded filters */}
+          {/* Expanded price filter */}
           {showFilters && (
-            <div className="border-t border-[var(--border)] py-4">
-              <div className="flex flex-wrap items-end gap-6">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    Max Price: ${maxPrice}
-                  </label>
-                  <input
-                    type="range"
-                    min={5}
-                    max={50}
-                    step={1}
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(Number(e.target.value))}
-                    className="w-48 accent-[var(--accent)]"
-                  />
-                </div>
-                {hasActiveFilters && (
+            <div className="mt-3 pt-3 border-t border-[var(--border)] flex flex-wrap gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] self-center mr-1">
+                Price:
+              </span>
+              {PRICE_PRESETS.map((preset) => {
+                const isActive = priceMin === preset.min && priceMax === preset.max;
+                return (
                   <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] hover:border-red-300 hover:text-red-500 transition-colors duration-200"
+                    key={preset.label}
+                    onClick={() => { setPriceMin(preset.min); setPriceMax(preset.max); }}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium border transition-all duration-200",
+                      isActive
+                        ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--primary)]"
+                        : "bg-[var(--card)] border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                    )}
                   >
-                    <X className="h-3.5 w-3.5" />
-                    Clear all filters
+                    {preset.label}
                   </button>
-                )}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Results ── */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* ── Main content ── */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         {/* Result count */}
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-[var(--muted-foreground)]">
-            {loading ? (
-              "Loading books…"
-            ) : (
-              <>
-                Showing{" "}
-                <span className="font-semibold text-[var(--foreground)]">{filtered.length}</span>
-                {" "}of{" "}
-                <span className="font-semibold text-[var(--foreground)]">{books.length}</span>
-                {" "}books
-              </>
-            )}
+        {!loading && !error && (
+          <p className="mb-6 text-sm text-[var(--muted-foreground)]">
+            {books.length === 0
+              ? "No books found"
+              : `Showing ${books.length} book${books.length !== 1 ? "s" : ""}`}
+            {selectedGenre && ` in ${selectedGenre}`}
+            {search && ` matching "${search}"`}
           </p>
-          {hasActiveFilters && !loading && (
-            <button
-              onClick={clearFilters}
-              className="text-xs text-[var(--accent)] hover:underline transition-colors"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-
-        {/* Loading spinner */}
-        {loading && (
-          <div className="flex min-h-[40vh] items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--border)] border-t-[var(--accent)]" />
-              <p className="text-sm text-[var(--muted-foreground)]">Loading books…</p>
-            </div>
-          </div>
         )}
 
         {/* Error state */}
-        {!loading && fetchError && (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
-            <BookOpen className="h-12 w-12 text-[var(--border)]" />
-            <p className="text-base font-semibold text-[var(--foreground)]">Could not load books</p>
-            <p className="text-sm text-[var(--muted-foreground)]">{fetchError}</p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && !fetchError && filtered.length === 0 && (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
-            <Filter className="h-12 w-12 text-[var(--border)]" />
-            <p className="text-base font-semibold text-[var(--foreground)]">No books match your filters</p>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Try adjusting your genre, price range, or search term.
+        {error && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-400">
+              <Filter className="h-7 w-7" />
+            </div>
+            <h2 className="font-display text-xl font-bold text-[var(--foreground)] mb-2">
+              Failed to load books
+            </h2>
+            <p className="text-sm text-[var(--muted-foreground)] mb-6 max-w-sm">
+              {error}
             </p>
             <button
-              onClick={clearFilters}
-              className="mt-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--accent)] hover:text-[var(--primary)] transition-all duration-200"
+              onClick={fetchBooks}
+              className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
             >
-              Clear all filters
+              Try again
             </button>
           </div>
         )}
 
-        {/* Book grid */}
-        {!loading && !fetchError && filtered.length > 0 && (
+        {/* Loading skeleton */}
+        {loading && <SkeletonGrid />}
+
+        {/* Books grid */}
+        {!loading && !error && books.length > 0 && (
           <motion.div
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {filtered.map((book) => (
+            {books.map((book) => (
               <BookCard
                 key={book.id}
                 book={book}
@@ -506,7 +530,28 @@ export default function BrowseCatalogPage() {
             ))}
           </motion.div>
         )}
+
+        {/* Empty state */}
+        {!loading && !error && books.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent-light)]">
+              <BookOpen className="h-7 w-7 text-[var(--accent)]" />
+            </div>
+            <h2 className="font-display text-xl font-bold text-[var(--foreground)] mb-2">
+              No books found
+            </h2>
+            <p className="text-sm text-[var(--muted-foreground)] mb-6 max-w-sm">
+              Try adjusting your filters or search term to discover more titles.
+            </p>
+            <button
+              onClick={clearFilters}
+              className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 }

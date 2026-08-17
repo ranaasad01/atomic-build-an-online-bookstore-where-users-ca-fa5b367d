@@ -11,7 +11,37 @@ import { cn } from "@/lib/utils";
 import { fadeInUp, staggerContainer, scaleIn } from "@/lib/motion";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/hooks/useCart";
-import type { Book } from "@/lib/data";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface BookRow {
+  id: string;
+  title: string;
+  author: string;
+  description: string;
+  genre: string;
+  price: number;
+  cover_image: string;
+  isbn?: string;
+  publisher?: string;
+  published_at?: string;
+  stock_quantity: number;
+  is_featured: boolean;
+  is_bestseller: boolean;
+  rating: number;
+  rating_count?: number;
+  pages?: number;
+}
+
+interface RelatedBook {
+  id: string;
+  title: string;
+  author: string;
+  price: number;
+  cover_image: string;
+  rating: number;
+  is_bestseller: boolean;
+}
 
 // ─── Static reviews (no reviews table needed) ────────────────────────────────
 
@@ -55,7 +85,13 @@ const FORMATS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" }) {
+function StarRating({
+  rating,
+  size = "sm",
+}: {
+  rating: number;
+  size?: "sm" | "md";
+}) {
   const starSize = size === "md" ? "w-5 h-5" : "w-4 h-4";
   return (
     <div className="flex items-center gap-0.5">
@@ -78,19 +114,58 @@ function formatPrice(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Loading Spinner ──────────────────────────────────────────────────────────
+
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+        <p className="text-sm text-[var(--muted-foreground)]">Loading book details…</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Not Found ────────────────────────────────────────────────────────────────
+
+function BookNotFound() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
+      <div className="text-center max-w-sm">
+        <BookOpen className="w-12 h-12 text-[var(--accent)] mx-auto mb-4" />
+        <h1 className="font-display text-2xl font-bold text-[var(--foreground)] mb-2">
+          Book not found
+        </h1>
+        <p className="text-[var(--muted-foreground)] mb-6">
+          We couldn't find the book you were looking for. It may have been removed or the link is incorrect.
+        </p>
+        <Link
+          href="/catalog"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--accent-hover)] hover:text-white"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Catalog
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inner page (needs useSearchParams) ──────────────────────────────────────
 
 function BookDetailPageInner() {
   const t = useTranslations();
   const searchParams = useSearchParams();
-  const bookId = searchParams.get("id") ?? "the-midnight-library";
+  const bookId = searchParams.get("id") ?? "";
 
   const supabase = createClient();
   const { addItem } = useCart();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
+  const [book, setBook] = useState<BookRow | null>(null);
+  const [relatedBooks, setRelatedBooks] = useState<RelatedBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   const [quantity, setQuantity] = useState(1);
   const [selectedFormat, setSelectedFormat] = useState(FORMATS[1].id);
@@ -98,32 +173,50 @@ function BookDetailPageInner() {
   const [wishlisted, setWishlisted] = useState(false);
 
   useEffect(() => {
+    if (!bookId) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchData() {
       setLoading(true);
+      setNotFound(false);
+
       try {
-        const [bookResult, relatedResult] = await Promise.all([
-          supabase.from("books").select("*").eq("id", bookId).single(),
-          supabase.from("books").select("*").neq("id", bookId).limit(4),
-        ]);
+        const { data: bookData, error: bookError } = await supabase
+          .from("books")
+          .select("*")
+          .eq("id", bookId)
+          .single();
 
         if (cancelled) return;
 
-        if (bookResult.error) {
-          console.error("Error fetching book:", bookResult.error);
-          setBook(null);
-        } else {
-          setBook(bookResult.data as Book);
+        if (bookError || !bookData) {
+          setNotFound(true);
+          setLoading(false);
+          return;
         }
 
-        if (!relatedResult.error && relatedResult.data) {
-          setRelatedBooks(relatedResult.data as Book[]);
+        setBook(bookData as BookRow);
+
+        // Fetch related books by same genre
+        const { data: relatedData } = await supabase
+          .from("books")
+          .select("id, title, author, price, cover_image, rating, is_bestseller")
+          .eq("genre", bookData.genre)
+          .neq("id", bookData.id)
+          .limit(4);
+
+        if (!cancelled) {
+          setRelatedBooks((relatedData as RelatedBook[]) ?? []);
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("Unexpected error fetching book data:", err);
-          setBook(null);
+          console.error("Failed to fetch book:", err);
+          setNotFound(true);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -131,461 +224,476 @@ function BookDetailPageInner() {
     }
 
     fetchData();
+
     return () => {
       cancelled = true;
     };
   }, [bookId]);
 
-  const selectedFormatObj = FORMATS.find((f) => f.id === selectedFormat) ?? FORMATS[1];
-  const displayPrice = book ? book.price + selectedFormatObj.priceModifier : 0;
-
-  function handleAddToCart() {
+  const handleAddToCart = () => {
     if (!book) return;
+    const format = FORMATS.find((f) => f.id === selectedFormat) ?? FORMATS[1];
+    const finalPrice = book.price + format.priceModifier;
     addItem({
       bookId: book.id,
       title: book.title,
       author: book.author,
-      price: displayPrice,
-      coverImage: book.coverImage,
+      price: finalPrice,
+      coverImage: book.cover_image,
       quantity,
-      format: selectedFormatObj.label,
+      format: format.label,
     });
     setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2500);
-  }
+    setTimeout(() => setAddedToCart(false), 2000);
+  };
 
-  // ── Loading state ──────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
-          <p className="text-sm text-[var(--muted-foreground)]">Loading book details...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
+  if (notFound || !book) return <BookNotFound />;
 
-  // ── Not found state ────────────────────────────────────────────────────────
-  if (!book) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
-        <div className="text-center max-w-sm">
-          <BookOpen className="w-12 h-12 text-[var(--muted-foreground)] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">Book not found</h1>
-          <p className="text-[var(--muted-foreground)] mb-6">
-            We couldn't find the book you were looking for. It may have been removed or the link is incorrect.
-          </p>
-          <Link
-            href="/catalog"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--accent)] text-[var(--primary)] font-semibold text-sm hover:bg-[var(--accent-hover)] transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Catalog
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const selectedFormatObj = FORMATS.find((f) => f.id === selectedFormat) ?? FORMATS[1];
+  const finalPrice = book.price + selectedFormatObj.priceModifier;
+  const inStock = book.stock_quantity > 0;
+  const lowStock = book.stock_quantity > 0 && book.stock_quantity <= 5;
 
-  // ── Main render ────────────────────────────────────────────────────────────
-  const inStock = book.stockQuantity > 0;
-  const lowStock = book.stockQuantity > 0 && book.stockQuantity <= 5;
+  const avgRating =
+    REVIEWS.reduce((sum, r) => sum + r.rating, 0) / REVIEWS.length;
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
       {/* Breadcrumb */}
-      <div className="border-b border-[var(--border)] bg-[var(--card)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-[var(--accent)] transition-colors duration-200">
-              Home
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <Link href="/catalog" className="hover:text-[var(--accent)] transition-colors duration-200">
-              Catalog
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-[var(--foreground)] font-medium truncate max-w-[200px]">{book.title}</span>
-          </nav>
+      <Reveal>
+        <div className="border-b border-[var(--border)] bg-[var(--card)]">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+            <nav className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]" aria-label="Breadcrumb">
+              <Link href="/" className="hover:text-[var(--accent)] transition-colors">
+                Home
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5" />
+              <Link href="/catalog" className="hover:text-[var(--accent)] transition-colors">
+                Catalog
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5" />
+              <span className="text-[var(--foreground)] font-medium line-clamp-1">
+                {book.title}
+              </span>
+            </nav>
+          </div>
         </div>
-      </div>
+      </Reveal>
 
-      {/* Hero section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          {/* Cover image */}
-          <Reveal className="flex justify-center lg:justify-end">
-            <div className="relative">
-              {/* Decorative glow */}
-              <div
-                className="absolute inset-0 rounded-2xl blur-3xl opacity-20 bg-[var(--accent)]"
-                style={{ transform: "scale(0.85) translateY(8%)" }}
-                aria-hidden="true"
-              />
+      {/* Main content */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
+          {/* Left — Cover */}
+          <Reveal>
+            <div className="flex flex-col items-center lg:items-start gap-6">
               <motion.div
                 variants={scaleIn}
                 initial="hidden"
                 animate="visible"
-                className="relative w-64 sm:w-72 md:w-80"
+                className="relative w-full max-w-sm mx-auto lg:mx-0"
               >
-                <img
-                  src={book.coverImage}
-                  alt={`Cover of ${book.title}`}
-                  className="w-full rounded-2xl shadow-[0_8px_40px_rgba(26,26,46,0.2)] border border-[var(--border)]"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src =
-                      "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop";
-                  }}
-                />
-                {book.isBestseller && (
-                  <div className="absolute -top-3 -right-3 flex items-center gap-1 bg-[var(--accent)] text-[var(--primary)] text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                    <Award className="w-3.5 h-3.5" />
-                    Bestseller
+                {book.is_bestseller && (
+                  <div className="absolute -top-3 -left-3 z-10">
+                    <span className="flex items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)] shadow-md">
+                      <Award className="w-3 h-3" />
+                      Bestseller
+                    </span>
                   </div>
                 )}
+                <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl border border-[var(--border)] shadow-[0_8px_40px_rgba(26,26,46,0.16)] bg-[var(--accent-light)]">
+                  <img
+                    src={book.cover_image}
+                    alt={book.title}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        "/images/book-placeholder.jpg";
+                    }}
+                  />
+                </div>
               </motion.div>
+
+              {/* Trust badges */}
+              <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto lg:mx-0">
+                {[
+                  { icon: Truck, label: "Free shipping over $40" },
+                  { icon: RotateCcw, label: "30-day returns" },
+                  { icon: BookOpen, label: "Quality guaranteed" },
+                ].map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 text-center"
+                  >
+                    <Icon className="w-4 h-4 text-[var(--accent)]" />
+                    <span className="text-[10px] leading-tight text-[var(--muted-foreground)]">
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Reveal>
 
-          {/* Book info */}
+          {/* Right — Details */}
           <motion.div
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
             className="flex flex-col gap-6"
           >
-            {/* Genre badge */}
+            {/* Genre + title */}
             <motion.div variants={fadeInUp}>
-              <span className="inline-block text-xs font-semibold uppercase tracking-widest text-[var(--accent)] bg-[var(--accent-light)] px-3 py-1 rounded-full">
+              <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
                 {book.genre}
               </span>
-            </motion.div>
-
-            {/* Title & author */}
-            <motion.div variants={fadeInUp}>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--foreground)] tracking-tight text-balance mb-2">
+              <h1 className="mt-1 font-display text-3xl md:text-4xl font-bold leading-tight text-[var(--foreground)] text-balance">
                 {book.title}
               </h1>
-              <p className="text-lg text-[var(--muted-foreground)]">
+              <p className="mt-2 text-lg text-[var(--muted-foreground)]">
                 by{" "}
-                <span className="text-[var(--foreground)] font-medium">{book.author}</span>
+                <span className="font-medium text-[var(--foreground)]">
+                  {book.author}
+                </span>
               </p>
             </motion.div>
 
             {/* Rating */}
             <motion.div variants={fadeInUp} className="flex items-center gap-3">
               <StarRating rating={book.rating} size="md" />
-              <span className="text-sm font-semibold text-[var(--foreground)]">{book.rating.toFixed(1)}</span>
-              <span className="text-sm text-[var(--muted-foreground)]">· Verified readers</span>
+              <span className="text-sm font-semibold text-[var(--foreground)]">
+                {book.rating.toFixed(1)}
+              </span>
+              {book.rating_count !== undefined && (
+                <span className="text-sm text-[var(--muted-foreground)]">
+                  ({book.rating_count.toLocaleString("en-US")} reviews)
+                </span>
+              )}
             </motion.div>
 
-            {/* Description */}
-            <motion.p
-              variants={fadeInUp}
-              className="text-[var(--muted-foreground)] leading-relaxed text-pretty"
-            >
-              {book.description}
-            </motion.p>
-
-            {/* Book meta */}
-            {(book.isbn || book.publisher || book.publishedAt || book.pages) && (
-              <motion.div
-                variants={fadeInUp}
-                className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-[var(--accent-light)] border border-[var(--border)]"
-              >
-                {book.isbn && (
-                  <div>
-                    <p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wide mb-0.5">ISBN</p>
-                    <p className="text-sm font-medium text-[var(--foreground)]">{book.isbn}</p>
-                  </div>
-                )}
-                {book.publisher && (
-                  <div>
-                    <p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wide mb-0.5">Publisher</p>
-                    <p className="text-sm font-medium text-[var(--foreground)]">{book.publisher}</p>
-                  </div>
-                )}
-                {book.publishedAt && (
-                  <div>
-                    <p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wide mb-0.5">Published</p>
-                    <p className="text-sm font-medium text-[var(--foreground)]">
-                      {new Date(book.publishedAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-                {book.pages && (
-                  <div>
-                    <p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wide mb-0.5">Pages</p>
-                    <p className="text-sm font-medium text-[var(--foreground)]">{book.pages}</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
+            {/* Price */}
+            <motion.div variants={fadeInUp}>
+              <span className="font-display text-3xl font-bold text-[var(--foreground)]">
+                {formatPrice(finalPrice)}
+              </span>
+            </motion.div>
 
             {/* Format selector */}
-            <motion.div variants={fadeInUp}>
-              <p className="text-sm font-semibold text-[var(--foreground)] mb-2">Format</p>
-              <div className="flex gap-2 flex-wrap">
+            <motion.div variants={fadeInUp} className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-[var(--foreground)]">
+                {t("bookDetail.format")}
+              </span>
+              <div className="flex gap-2">
                 {FORMATS.map((fmt) => (
                   <button
                     key={fmt.id}
                     onClick={() => setSelectedFormat(fmt.id)}
                     className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200",
+                      "rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-200",
                       selectedFormat === fmt.id
-                        ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                        : "bg-[var(--card)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--accent)]"
+                        ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)] shadow-sm"
+                        : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
                     )}
                   >
                     {fmt.label}
+                    {fmt.priceModifier !== 0 && (
+                      <span className="ml-1 text-xs opacity-70">
+                        {fmt.priceModifier > 0
+                          ? `+$${fmt.priceModifier}`
+                          : `-$${Math.abs(fmt.priceModifier)}`}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
             </motion.div>
 
-            {/* Price & quantity */}
-            <motion.div variants={fadeInUp} className="flex items-center gap-6">
-              <div>
-                <p className="text-3xl font-bold text-[var(--foreground)]">{formatPrice(displayPrice)}</p>
-                {selectedFormatObj.priceModifier !== 0 && (
-                  <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    Base price: {formatPrice(book.price)}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                  aria-label="Decrease quantity"
-                  className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            {/* Quantity + stock */}
+            <motion.div variants={fadeInUp} className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-[var(--foreground)]">
+                {t("bookDetail.quantity")}
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)] px-1 py-0.5">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    aria-label="Decrease quantity"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-semibold tabular-nums">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setQuantity((q) =>
+                        Math.min(q + 1, book.stock_quantity)
+                      )
+                    }
+                    aria-label="Increase quantity"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    inStock ? "text-green-600" : "text-red-500"
+                  )}
                 >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <span className="w-8 text-center font-semibold text-[var(--foreground)] tabular-nums">
-                  {quantity}
+                  {!inStock
+                    ? t("bookDetail.outOfStock")
+                    : lowStock
+                    ? t("bookDetail.lowStock", { count: book.stock_quantity })
+                    : t("bookDetail.inStock")}
                 </span>
-                <button
-                  onClick={() => setQuantity((q) => Math.min(book.stockQuantity, q + 1))}
-                  disabled={quantity >= book.stockQuantity}
-                  aria-label="Increase quantity"
-                  className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
               </div>
-            </motion.div>
-
-            {/* Stock status */}
-            <motion.div variants={fadeInUp}>
-              {inStock ? (
-                <p className={cn("text-sm font-medium", lowStock ? "text-amber-600" : "text-emerald-600")}>
-                  {lowStock ? `Only ${book.stockQuantity} left in stock` : "In stock — ships in 2 business days"}
-                </p>
-              ) : (
-                <p className="text-sm font-medium text-red-500">Out of stock</p>
-              )}
             </motion.div>
 
             {/* CTA buttons */}
-            <motion.div variants={fadeInUp} className="flex gap-3 flex-wrap">
+            <motion.div variants={fadeInUp} className="flex gap-3">
               <button
                 onClick={handleAddToCart}
-                disabled={!inStock}
+                disabled={!inStock || addedToCart}
                 className={cn(
-                  "flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-sm transition-all duration-200",
-                  inStock
-                    ? addedToCart
-                      ? "bg-emerald-600 text-white"
-                      : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] shadow-[0_4px_16px_rgba(200,169,110,0.35)] hover:shadow-[0_6px_20px_rgba(200,169,110,0.45)]"
-                    : "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
+                  "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200",
+                  !inStock
+                    ? "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
+                    : addedToCart
+                    ? "bg-green-600 text-white"
+                    : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white shadow-[0_2px_12px_rgba(200,169,110,0.3)]"
                 )}
               >
                 {addedToCart ? (
                   <>
                     <Check className="w-4 h-4" />
-                    Added to Cart
+                    {t("bookDetail.added")}
                   </>
                 ) : (
                   <>
                     <ShoppingCart className="w-4 h-4" />
-                    Add to Cart
+                    {t("bookDetail.addToCart")}
                   </>
                 )}
               </button>
 
               <button
                 onClick={() => setWishlisted((w) => !w)}
-                aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                aria-label={t("bookDetail.wishlist")}
                 className={cn(
-                  "w-12 h-12 rounded-full border flex items-center justify-center transition-all duration-200",
+                  "flex h-12 w-12 items-center justify-center rounded-xl border transition-all duration-200",
                   wishlisted
-                    ? "bg-red-50 border-red-200 text-red-500"
-                    : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-red-200 hover:text-red-400"
+                    ? "border-red-300 bg-red-50 text-red-500"
+                    : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-red-300 hover:text-red-400"
                 )}
               >
-                <Heart className={cn("w-5 h-5", wishlisted && "fill-red-500")} />
+                <Heart
+                  className={cn(
+                    "w-5 h-5",
+                    wishlisted && "fill-red-500"
+                  )}
+                />
               </button>
 
               <button
-                aria-label="Share this book"
-                className="w-12 h-12 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all duration-200"
                 onClick={() => {
                   if (navigator.share) {
-                    navigator.share({ title: book.title, url: window.location.href }).catch(() => {});
+                    navigator
+                      .share({ title: book.title, url: window.location.href })
+                      .catch(() => {});
                   } else {
-                    navigator.clipboard.writeText(window.location.href).catch(() => {});
+                    navigator.clipboard
+                      .writeText(window.location.href)
+                      .catch(() => {});
                   }
                 }}
+                aria-label={t("bookDetail.share")}
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)]"
               >
                 <Share2 className="w-5 h-5" />
               </button>
             </motion.div>
 
-            {/* Trust badges */}
+            {/* Description */}
+            <motion.div variants={fadeInUp} className="border-t border-[var(--border)] pt-6">
+              <h2 className="font-display text-lg font-bold text-[var(--foreground)] mb-3">
+                About this book
+              </h2>
+              <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
+                {book.description}
+              </p>
+            </motion.div>
+
+            {/* Metadata */}
             <motion.div
               variants={fadeInUp}
-              className="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--border)]"
+              className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
             >
               {[
-                { icon: Truck, label: "Free shipping over $40" },
-                { icon: RotateCcw, label: "30-day returns" },
-                { icon: BookOpen, label: "Secure checkout" },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex flex-col items-center gap-1 text-center">
-                  <Icon className="w-4 h-4 text-[var(--accent)]" />
-                  <span className="text-xs text-[var(--muted-foreground)] leading-tight">{label}</span>
-                </div>
-              ))}
+                { label: t("bookDetail.isbn"), value: book.isbn },
+                { label: t("bookDetail.publisher"), value: book.publisher },
+                {
+                  label: t("bookDetail.published"),
+                  value: book.published_at
+                    ? new Date(book.published_at).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : undefined,
+                },
+                {
+                  label: t("bookDetail.pages"),
+                  value: book.pages ? String(book.pages) : undefined,
+                },
+              ]
+                .filter((m) => m.value)
+                .map((m) => (
+                  <div key={m.label}>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                      {m.label}
+                    </dt>
+                    <dd className="mt-0.5 text-sm font-medium text-[var(--foreground)]">
+                      {m.value}
+                    </dd>
+                  </div>
+                ))}
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* Reviews section */}
-      <section className="bg-[var(--card)] border-t border-[var(--border)] py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Reveal>
-            <h2 className="text-2xl font-bold text-[var(--foreground)] mb-8">Reader Reviews</h2>
-          </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {REVIEWS.map((review, i) => (
-              <Reveal key={review.id} delay={i * 0.1}>
-                <div className="bg-[var(--background)] rounded-2xl p-6 border border-[var(--border)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] h-full flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
+      {/* Reviews */}
+      <Reveal>
+        <section className="border-t border-[var(--border)] bg-[var(--card)] py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="font-display text-2xl font-bold text-[var(--foreground)]">
+                {t("bookDetail.reviews")}
+              </h2>
+              <div className="flex items-center gap-2">
+                <StarRating rating={avgRating} size="md" />
+                <span className="text-sm font-semibold text-[var(--foreground)]">
+                  {avgRating.toFixed(1)}
+                </span>
+                <span className="text-sm text-[var(--muted-foreground)]">
+                  ({REVIEWS.length} reviews)
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {REVIEWS.map((review) => (
+                <article
+                  key={review.id}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
+                >
+                  <div className="flex items-center gap-3 mb-3">
                     <img
                       src={review.avatar}
                       alt={review.name}
-                      className="w-10 h-10 rounded-full border border-[var(--border)]"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                      }}
+                      className="w-9 h-9 rounded-full border border-[var(--border)]"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-[var(--foreground)]">{review.name}</p>
-                      <p className="text-xs text-[var(--muted-foreground)]">{review.date}</p>
+                      <p className="text-sm font-semibold text-[var(--foreground)]">
+                        {review.name}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {review.date}
+                      </p>
                     </div>
                   </div>
                   <StarRating rating={review.rating} />
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--foreground)] mb-1">{review.title}</p>
-                    <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">{review.body}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
+                  <h3 className="mt-2 text-sm font-semibold text-[var(--foreground)]">
+                    {review.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                    {review.body}
+                  </p>
+                </article>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       {/* Related books */}
       {relatedBooks.length > 0 && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Reveal>
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[var(--foreground)]">You Might Also Like</h2>
-                <Link
-                  href="/catalog"
-                  className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors duration-200 flex items-center gap-1"
-                >
-                  View all
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Reveal>
-
-            <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-6"
-            >
-              {relatedBooks.map((related) => (
-                <motion.div key={related.id} variants={fadeInUp}>
-                  <Link
-                    href={`/book-detail?id=${related.id}`}
-                    className="group block bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.16)] transition-all duration-300"
+        <Reveal>
+          <section className="py-16">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <h2 className="font-display text-2xl font-bold text-[var(--foreground)] mb-8">
+                {t("bookDetail.relatedBooks")}
+              </h2>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-80px" }}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+              >
+                {relatedBooks.map((rb) => (
+                  <motion.article
+                    key={rb.id}
+                    variants={fadeInUp}
+                    className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.14)]"
                   >
-                    <div className="aspect-[2/3] overflow-hidden bg-[var(--accent-light)]">
+                    <Link href={`/book-detail?id=${rb.id}`} className="block relative aspect-[2/3] overflow-hidden bg-[var(--accent-light)]">
+                      {rb.is_bestseller && (
+                        <span className="absolute top-2 left-2 z-10 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--primary)]">
+                          Bestseller
+                        </span>
+                      )}
                       <img
-                        src={related.coverImage}
-                        alt={`Cover of ${related.title}`}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        src={rb.cover_image}
+                        alt={rb.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src =
-                            "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=300&h=450&fit=crop";
+                            "/images/book-placeholder.jpg";
                         }}
                       />
-                    </div>
-                    <div className="p-4">
-                      <p className="text-xs text-[var(--accent)] font-semibold uppercase tracking-wide mb-1">
-                        {related.genre}
+                    </Link>
+                    <div className="p-3">
+                      <Link href={`/book-detail?id=${rb.id}`}>
+                        <h3 className="font-display text-sm font-bold leading-snug text-[var(--foreground)] line-clamp-2 hover:text-[var(--accent)] transition-colors">
+                          {rb.title}
+                        </h3>
+                      </Link>
+                      <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                        {rb.author}
                       </p>
-                      <h3 className="text-sm font-bold text-[var(--foreground)] leading-tight mb-1 line-clamp-2 group-hover:text-[var(--accent)] transition-colors duration-200">
-                        {related.title}
-                      </h3>
-                      <p className="text-xs text-[var(--muted-foreground)] mb-2">{related.author}</p>
-                      <div className="flex items-center justify-between">
+                      <div className="mt-1.5 flex items-center justify-between">
+                        <StarRating rating={rb.rating} />
                         <span className="text-sm font-bold text-[var(--foreground)]">
-                          {formatPrice(related.price)}
+                          {formatPrice(rb.price)}
                         </span>
-                        <StarRating rating={related.rating} />
                       </div>
                     </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {/* Back to catalog */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <Reveal>
-          <Link
-            href="/catalog"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--accent)] transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Catalog
-          </Link>
+                  </motion.article>
+                ))}
+              </motion.div>
+            </div>
+          </section>
         </Reveal>
-      </div>
+      )}
     </main>
   );
 }
 
+// ─── Page export (wrapped in Suspense for useSearchParams) ───────────────────
+
 export default function BookDetailPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+          <div className="w-10 h-10 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+        </div>
+      }
+    >
       <BookDetailPageInner />
     </Suspense>
   );

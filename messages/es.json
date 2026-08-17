@@ -10,37 +10,37 @@
     "genresHeading": "Géneros",
     "copyright": "© 2025 PageTurner. Todos los derechos reservados.",
     "madeWith": "Hecho con",
-    "forReaders": "para lectores de todo el mundo"
+    "forReaders": "para lectores en todas partes"
   },
   "hero": {
     "bullet1": "Más de 50,000 títulos en stock",
-    "bullet2": "Envío gratis en pedidos mayores de $50",
+    "bullet2": "Envío gratis en pedidos superiores a $50",
     "bullet3": "Devoluciones sin complicaciones en 30 días"
   },
   "catalog": {
-    "heading": "Explorar el Catálogo",
+    "heading": "Explora el Catálogo",
     "subheading": "Miles de títulos en todos los géneros.",
     "searchPlaceholder": "Buscar por título, autor o género…",
     "allGenres": "Todos los Géneros",
-    "sortBestsellers": "Más vendidos",
-    "sortRating": "Mejor valorados",
-    "sortPriceLow": "Precio: menor a mayor",
-    "sortPriceHigh": "Precio: mayor a menor",
-    "sortNewest": "Más recientes",
+    "sortBestsellers": "Más Vendidos",
+    "sortRating": "Mejor Valorados",
+    "sortPriceLow": "Precio: Menor a Mayor",
+    "sortPriceHigh": "Precio: Mayor a Menor",
+    "sortNewest": "Más Recientes",
     "filters": "Filtros",
     "clearFilters": "Limpiar filtros",
-    "priceRange": "Rango de precio",
+    "priceRange": "Rango de Precio",
     "inStock": "En stock",
     "outOfStock": "Agotado",
-    "bestseller": "Más vendido",
+    "bestseller": "Más Vendido",
     "featured": "Destacado",
-    "addToCart": "Añadir al carrito",
+    "addToCart": "Añadir al Carrito",
     "added": "Añadido",
     "noResults": "No se encontraron libros",
-    "noResultsHint": "Intenta ajustar los filtros o el término de búsqueda.",
+    "noResultsHint": "Intenta ajustar tus filtros o término de búsqueda.",
     "showing": "Mostrando",
     "of": "de",
-    "books": "libros",
+    "books": "Libros",
     "previous": "Anterior",
     "next": "Siguiente",
     "gridView": "Vista de cuadrícula",
@@ -49,20 +49,20 @@
     "price10to15": "$10 – $15",
     "price15to20": "$15 – $20",
     "overPrice": "Más de $20",
-    "onlyLeft": "Solo quedan {count}",
+    "onlyLeft": "Solo {count} disponible",
     "verifiedReaders": "Lectores verificados",
     "description": "Descripción",
     "viewCart": "Ver carrito"
   },
   "cart": {
-    "heading": "Tu Carrito",
+    "heading": "Tu carrito",
     "emptyTitle": "Tu carrito está vacío",
     "emptySubtitle": "Parece que aún no has añadido ningún libro.",
-    "browseCatalog": "Explorar Catálogo",
+    "browseCatalog": "Explorar catálogo",
     "orderSummary": "Resumen del pedido",
     "subtotal": "Subtotal",
     "shipping": "Envío",
-    "tax": "Impuesto",
+    "tax": "Impuestos",
     "total": "Total",
     "checkout": "Proceder al pago",
     "continueShopping": "Seguir comprando",
@@ -76,7 +76,7 @@
     "heading": "Pago",
     "shipping": "Envío",
     "payment": "Pago",
-    "review": "Revisión",
+    "review": "Revisar",
     "placeOrder": "Realizar pedido",
     "processing": "Procesando…",
     "fullName": "Nombre completo",
@@ -92,62 +92,62 @@
     "cvv": "CVV"
   },
   "bookDetail": {
-    "addToCart": "Añadir al carrito",
-    "added": "Añadido al carrito",
+    "addToCart": "Agregar al Carrito",
+    "added": "Agregado al Carrito",
     "outOfStock": "Agotado",
-    "wishlist": "Añadir a favoritos",
-    "wishlisted": "En favoritos",
+    "wishlist": "Agregar a Lista de Deseos",
+    "wishlisted": "En Lista de Deseos",
     "share": "Compartir",
     "format": "Formato",
     "quantity": "Cantidad",
     "inStock": "En stock",
-    "lowStock": "Solo quedan {count}",
-    "relatedBooks": "También te puede gustar",
-    "reviews": "Reseñas de clientes",
+    "lowStock": "Solo {count} disponible",
+    "relatedBooks": "También te Podría Interesar",
+    "reviews": "Reseñas de Clientes",
     "isbn": "ISBN",
     "publisher": "Editorial",
     "published": "Publicado",
     "pages": "Páginas"
   },
   "orderConfirmation": {
-    "heading": "¡Pedido confirmado!",
+    "heading": "¡Pedido Confirmado!",
     "subheading": "Gracias por tu pedido.",
     "orderNumber": "Pedido #",
-    "continueShopping": "Seguir comprando",
-    "backHome": "Volver al inicio",
-    "shippingTo": "Enviando a",
-    "estimatedDelivery": "Entrega estimada",
-    "yourBooks": "Tus libros",
-    "orderSummary": "Resumen del pedido"
+    "continueShopping": "Continuar Comprando",
+    "backHome": "Volver al Inicio",
+    "shippingTo": "Envío a",
+    "estimatedDelivery": "Entrega Estimada",
+    "yourBooks": "Tus Libros",
+    "orderSummary": "Resumen del Pedido"
   },
   "shipping-info": {
-    "heading": "Información de envío",
+    "heading": "Información de Envío",
     "body": "Enviamos a todo el mundo con múltiples opciones de entrega."
   },
   "about": {
-    "heading": "Sobre PageTurner",
-    "body": "Nos apasiona conectar a los lectores con grandes libros."
+    "heading": "Acerca de PageTurner",
+    "body": "Nos apasiona conectar lectores con excelentes libros."
   },
   "faq": {
-    "heading": "Preguntas frecuentes"
+    "heading": "Preguntas Frecuentes"
   },
   "contact": {
     "heading": "Contáctanos"
   },
   "login": {
-    "heading": "Iniciar sesión",
-    "email": "Correo electrónico",
+    "heading": "Iniciar Sesión",
+    "email": "Correo Electrónico",
     "password": "Contraseña",
-    "submit": "Iniciar sesión",
+    "submit": "Iniciar Sesión",
     "noAccount": "¿No tienes cuenta?",
     "signUp": "Regístrate"
   },
   "signup": {
-    "heading": "Crear cuenta",
-    "email": "Correo electrónico",
+    "heading": "Crear Cuenta",
+    "email": "Correo Electrónico",
     "password": "Contraseña",
-    "submit": "Crear cuenta",
-    "hasAccount": "¿Ya tienes cuenta?",
-    "signIn": "Inicia sesión"
+    "submit": "Crear Cuenta",
+    "hasAccount": "¿Ya tienes una cuenta?",
+    "signIn": "Iniciar sesión"
   }
 }
