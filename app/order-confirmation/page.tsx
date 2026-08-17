@@ -11,12 +11,21 @@ import { cn } from "@/lib/utils";
 import type { CartItem } from "@/lib/data";
 import { TAX_RATE, FREE_SHIPPING_THRESHOLD } from "@/lib/data";
 
-type ShippingAddress = any;
+interface ShippingInfo {
+  fullName: string;
+  email: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  shippingMethod: string;
+}
 
 interface StoredOrder {
   orderNumber: string;
   items: CartItem[];
-  shipping: ShippingAddress;
+  shipping: ShippingInfo;
   subtotal: number;
   tax: number;
   shippingCost: number;
@@ -104,7 +113,7 @@ export default function OrderConfirmationPage() {
   if (!mounted || !order) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--brand-accent)] border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -121,10 +130,10 @@ export default function OrderConfirmationPage() {
       : "Free Standard (5-7 days)";
 
   return (
-    <main className="min-h-screen bg-[hsl(var(--background))] pb-24">
+    <main className="min-h-screen bg-[var(--background)] pb-24">
       {/* Success Banner */}
       <Reveal>
-        <section className="relative overflow-hidden bg-[var(--brand-accent)] py-16 md:py-20">
+        <section className="relative overflow-hidden bg-[var(--primary)] py-16 md:py-20">
           <div
             className="pointer-events-none absolute inset-0 opacity-10"
             style={{
@@ -139,183 +148,247 @@ export default function OrderConfirmationPage() {
               animate="visible"
               className="mb-6 flex justify-center"
             >
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm ring-4 ring-white/30">
-                <CheckCircle className="h-10 w-10 text-white" aria-hidden="true" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent)]/20 ring-4 ring-[var(--accent)]/30">
+                <CheckCircle className="h-10 w-10 text-[var(--accent)]" />
               </div>
             </motion.div>
+
             <motion.h1
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              className="text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl"
+              className="font-display text-3xl font-bold text-white md:text-4xl"
             >
-              {t("orderConfirmation.banner.heading")}
+              Order Confirmed!
             </motion.h1>
             <motion.p
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.1 }}
-              className="mt-3 text-lg text-white/80"
+              className="mt-3 text-white/70"
             >
-              {t("orderConfirmation.banner.subheading")}
+              Thank you for your order. We&apos;ll send a confirmation to{" "}
+              <span className="font-medium text-[var(--accent)]">
+                {order.shipping.email}
+              </span>
             </motion.p>
+
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ delay: 0.2 }}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/20 px-5 py-2 text-sm font-semibold text-white backdrop-blur-sm ring-1 ring-white/30"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white"
             >
-              <span>{t("orderConfirmation.banner.orderLabel")}</span>
-              <span className="font-mono tracking-wider">{order.orderNumber}</span>
+              <Package className="h-4 w-4 text-[var(--accent)]" />
+              Order #{order.orderNumber}
             </motion.div>
           </div>
         </section>
       </Reveal>
 
-      <div className="mx-auto max-w-5xl px-6 pt-12">
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Left: Main Details */}
-          <div className="space-y-8 lg:col-span-2">
+      {/* Main Content */}
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="mt-10 grid gap-6 lg:grid-cols-3"
+        >
+          {/* Left column: items + summary */}
+          <div className="space-y-6 lg:col-span-2">
             {/* Items */}
             <Reveal>
-              <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.08)]">
-                <div className="flex items-center gap-3 border-b border-[hsl(var(--border))] px-6 py-4">
-                  <ShoppingBag className="h-5 w-5 text-[var(--brand-accent)]" aria-hidden="true" />
-                  <h2 className="text-base font-semibold text-[hsl(var(--foreground))]">
-                    {t("orderConfirmation.items.heading")}
-                  </h2>
-                  <span className="ml-auto rounded-full bg-[hsl(var(--muted))] px-2.5 py-0.5 text-xs font-medium text-[hsl(var(--muted-foreground))]">
-                    {order.items.reduce((s, i) => s + i.quantity, 0)}{" "}
-                    {t("orderConfirmation.items.itemsLabel")}
-                  </span>
-                </div>
-                <motion.ul
-                  variants={staggerContainer}
-                  initial="hidden"
-                  animate="visible"
-                  className="divide-y divide-[hsl(var(--border))]"
-                >
-                  {order.items.map((item, idx) => (
-                    <motion.li
-                      key={`${item.bookId}-${idx}`}
-                      variants={fadeInUp}
-                      className="flex gap-4 px-6 py-5"
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                <h2 className="mb-4 font-display text-lg font-semibold text-[var(--foreground)]">
+                  Your Books
+                </h2>
+                <ul className="divide-y divide-[var(--border)]">
+                  {order.items.map((item) => (
+                    <li
+                      key={`${item.bookId}-${item.format}`}
+                      className="flex gap-4 py-4 first:pt-0 last:pb-0"
                     >
-                      <div className="relative h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg shadow-sm ring-1 ring-black/5">
+                      <div className="relative h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--accent-light)]">
                         <img
                           src={item.coverImage}
                           alt={item.title}
                           className="h-full w-full object-cover"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).src =
-                              "https://titoaistorageaccount.blob.core.windows.net/titoai-storage/site-images/c3daa240290f462eba06fde627c379ca.jpg";
+                              "/images/placeholder-book.jpg";
                           }}
                         />
                       </div>
-                      <div className="flex flex-1 flex-col justify-center gap-1">
-                        <p className="font-semibold leading-snug text-[hsl(var(--foreground))]">
+                      <div className="flex flex-1 flex-col justify-center">
+                        <p className="font-medium text-[var(--foreground)] leading-snug">
                           {item.title}
                         </p>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                        <p className="text-sm text-[var(--muted-foreground)]">
                           {item.author}
                         </p>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                          Qty: {item.quantity} &times; {formatPrice(item.price)}
+                        {item.format && (
+                          <p className="mt-0.5 text-xs capitalize text-[var(--muted-foreground)]">
+                            {item.format}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end justify-center gap-1">
+                        <p className="font-semibold text-[var(--foreground)]">
+                          {formatPrice(item.price * item.quantity)}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          Qty: {item.quantity}
                         </p>
                       </div>
-                      <div className="flex items-center font-semibold text-[hsl(var(--foreground))]">
-                        {formatPrice(item.price * item.quantity)}
-                      </div>
-                    </motion.li>
+                    </li>
                   ))}
-                </motion.ul>
+                </ul>
               </div>
             </Reveal>
 
+            {/* Order Summary */}
+            <Reveal>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                <h2 className="mb-4 font-display text-lg font-semibold text-[var(--foreground)]">
+                  Order Summary
+                </h2>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-[var(--muted-foreground)]">Subtotal</dt>
+                    <dd className="font-medium text-[var(--foreground)]">
+                      {formatPrice(order.subtotal)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-[var(--muted-foreground)]">Shipping</dt>
+                    <dd className="font-medium text-[var(--foreground)]">
+                      {order.shippingCost === 0
+                        ? "Free"
+                        : formatPrice(order.shippingCost)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-[var(--muted-foreground)]">Tax</dt>
+                    <dd className="font-medium text-[var(--foreground)]">
+                      {formatPrice(order.tax)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between border-t border-[var(--border)] pt-3">
+                    <dt className="font-semibold text-[var(--foreground)]">Total</dt>
+                    <dd className="font-bold text-[var(--foreground)] text-base">
+                      {formatPrice(order.total)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* Right column: shipping + delivery */}
+          <div className="space-y-6">
             {/* Shipping Address */}
             <Reveal>
-              <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.08)]">
-                <div className="flex items-center gap-3 border-b border-[hsl(var(--border))] px-6 py-4">
-                  <MapPin className="h-5 w-5 text-[var(--brand-accent)]" aria-hidden="true" />
-                  <h2 className="text-base font-semibold text-[hsl(var(--foreground))]">
-                    {t("orderConfirmation.shipping.heading")}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                <div className="mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-[var(--accent)]" />
+                  <h2 className="font-display text-base font-semibold text-[var(--foreground)]">
+                    Shipping To
                   </h2>
                 </div>
-                <div className="px-6 py-5 space-y-1 text-sm text-[hsl(var(--foreground))]">
-                  <p className="font-semibold">{order.shipping.fullName}</p>
+                <address className="not-italic text-sm text-[var(--muted-foreground)] leading-relaxed">
+                  <p className="font-medium text-[var(--foreground)]">
+                    {order.shipping.fullName}
+                  </p>
                   <p>{order.shipping.addressLine1}</p>
-                  {order.shipping.addressLine2 && <p>{order.shipping.addressLine2}</p>}
-                  <p>{order.shipping.city}, {order.shipping.state} {order.shipping.postalCode}</p>
+                  <p>
+                    {order.shipping.city}, {order.shipping.state}{" "}
+                    {order.shipping.postalCode}
+                  </p>
                   <p>{order.shipping.country}</p>
-                  <p className="pt-2 text-[hsl(var(--muted-foreground))]">{order.shipping.email}</p>
-                  <p className="pt-1 text-[hsl(var(--muted-foreground))]">{shippingLabel}</p>
+                </address>
+                <div className="mt-3 rounded-lg bg-[var(--accent-light)] px-3 py-2 text-xs font-medium text-[var(--foreground)]">
+                  {shippingLabel}
                 </div>
               </div>
             </Reveal>
 
             {/* Estimated Delivery */}
             <Reveal>
-              <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.08)]">
-                <div className="flex items-center gap-3 border-b border-[hsl(var(--border))] px-6 py-4">
-                  <Calendar className="h-5 w-5 text-[var(--brand-accent)]" aria-hidden="true" />
-                  <h2 className="text-base font-semibold text-[hsl(var(--foreground))]">
-                    {t("orderConfirmation.delivery.heading")}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                <div className="mb-3 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[var(--accent)]" />
+                  <h2 className="font-display text-base font-semibold text-[var(--foreground)]">
+                    Estimated Delivery
                   </h2>
                 </div>
-                <div className="px-6 py-5">
-                  <p className="text-sm text-[hsl(var(--foreground))]">
-                    {t("orderConfirmation.delivery.estimatedLabel")}:{" "}
-                    <span className="font-semibold">{estimatedDelivery}</span>
+                <p className="text-sm font-medium text-[var(--foreground)]">
+                  {estimatedDelivery}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  You&apos;ll receive a tracking email once your order ships.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* CTA */}
+            <Reveal>
+              <div className="space-y-3">
+                <Link
+                  href="/catalog"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  <ShoppingBag className="h-4 w-4" />
+                  Continue Shopping
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm font-medium text-[var(--foreground)] transition-all duration-200 hover:bg-[var(--accent-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  Back to Home
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+        </motion.div>
+
+        {/* Reassurance strip */}
+        <Reveal>
+          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              {
+                icon: <Package className="h-5 w-5 text-[var(--accent)]" />,
+                title: "Carefully Packed",
+                body: "Every order is wrapped to protect your books in transit.",
+              },
+              {
+                icon: <Star className="h-5 w-5 text-[var(--accent)]" />,
+                title: "Quality Guaranteed",
+                body: "Not satisfied? Return within 30 days for a full refund.",
+              },
+              {
+                icon: <CheckCircle className="h-5 w-5 text-[var(--accent)]" />,
+                title: "Secure Payment",
+                body: "Your payment details are encrypted end-to-end.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+              >
+                <div className="mt-0.5 flex-shrink-0">{item.icon}</div>
+                <div>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">
+                    {item.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--muted-foreground)] leading-relaxed">
+                    {item.body}
                   </p>
                 </div>
               </div>
-            </Reveal>
+            ))}
           </div>
-
-          {/* Right: Order Summary */}
-          <div className="space-y-6">
-            <Reveal>
-              <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.08)]">
-                <div className="flex items-center gap-3 border-b border-[hsl(var(--border))] px-6 py-4">
-                  <Package className="h-5 w-5 text-[var(--brand-accent)]" aria-hidden="true" />
-                  <h2 className="text-base font-semibold text-[hsl(var(--foreground))]">
-                    {t("orderConfirmation.summary.heading")}
-                  </h2>
-                </div>
-                <div className="px-6 py-5 space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-[hsl(var(--muted-foreground))]">{t("orderConfirmation.summary.subtotal")}</span>
-                    <span>{formatPrice(order.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[hsl(var(--muted-foreground))]">{t("orderConfirmation.summary.tax")}</span>
-                    <span>{formatPrice(order.tax)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[hsl(var(--muted-foreground))]">{t("orderConfirmation.summary.shipping")}</span>
-                    <span>{order.shippingCost === 0 ? t("orderConfirmation.summary.free") : formatPrice(order.shippingCost)}</span>
-                  </div>
-                  <div className="border-t border-[hsl(var(--border))] pt-3 flex justify-between font-semibold text-base">
-                    <span>{t("orderConfirmation.summary.total")}</span>
-                    <span>{formatPrice(order.total)}</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal>
-              <Link
-                href="/catalog"
-                className="flex items-center justify-center gap-2 w-full rounded-xl bg-[var(--brand-accent)] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-              >
-                {t("orderConfirmation.cta.continueShopping")}
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </Reveal>
-          </div>
-        </div>
+        </Reveal>
       </div>
     </main>
   );

@@ -5,35 +5,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import en from "@/messages/en.json";
 import es from "@/messages/es.json";
 
-function toAbstractMessages(obj: unknown): AbstractIntlMessages {
-  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
-    return {};
-  }
-  const result: AbstractIntlMessages = {};
-  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-    if (typeof value === "string") {
-      result[key] = value;
-    } else if (Array.isArray(value)) {
-      // Convert arrays to indexed string records or skip non-string arrays
-      const arrayResult: AbstractIntlMessages = {};
-      value.forEach((item, index) => {
-        if (typeof item === "string") {
-          arrayResult[String(index)] = item;
-        } else if (typeof item === "object" && item !== null && !Array.isArray(item)) {
-          arrayResult[String(index)] = toAbstractMessages(item);
-        }
-      });
-      result[key] = arrayResult;
-    } else if (typeof value === "object" && value !== null) {
-      result[key] = toAbstractMessages(value);
-    }
-  }
-  return result;
-}
-
+// Cast the imported JSON to AbstractIntlMessages so that nested objects
+// (which TypeScript infers as concrete types) satisfy the index-signature
+// requirement of AbstractIntlMessages.
 const MESSAGES: Record<string, AbstractIntlMessages> = {
-  en: toAbstractMessages(en),
-  es: toAbstractMessages(es),
+  en: en as unknown as AbstractIntlMessages,
+  es: es as unknown as AbstractIntlMessages,
 };
 
 const DEFAULT_LOCALE = process.env.NEXT_PUBLIC_DEFAULT_LOCALE || "en";

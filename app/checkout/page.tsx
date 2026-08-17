@@ -10,16 +10,43 @@ import { Reveal } from "@/components/Reveal";
 import { fadeInUp, staggerContainer } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { CartItem, FREE_SHIPPING_THRESHOLD, TAX_RATE } from "@/lib/data";
-type ShippingAddress = any;
-const ShippingAddress: any = [];
-type PaymentDetails = any;
-const PaymentDetails: any = [];
-type SHIPPING_RATES = any;
-const SHIPPING_RATES: any = [];
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step = "shipping" | "payment" | "review";
+
+interface ShippingAddress {
+  fullName: string;
+  email: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  shippingMethod: string;
+}
+
+interface PaymentDetails {
+  cardNumber: string;
+  cardName: string;
+  expiry: string;
+  cvv: string;
+}
+
+interface ShippingRate {
+  id: string;
+  label: string;
+  description: string;
+  price: number;
+}
+
+const SHIPPING_RATES: ShippingRate[] = [
+  { id: "free", label: "Free Standard", description: "5–7 business days", price: 0 },
+  { id: "standard", label: "Standard", description: "3–5 business days", price: 4.99 },
+  { id: "express", label: "Express", description: "1–2 business days", price: 12.99 },
+];
 
 const STEPS: { id: Step; label: string; icon: React.ReactNode }[] = [
   { id: "shipping", label: "Shipping", icon: <MapPin className="h-4 w-4" /> },
@@ -96,18 +123,18 @@ function InputField({
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={id} className="text-sm font-medium text-[hsl(var(--foreground))]">
+      <label htmlFor={id} className="text-sm font-medium text-[var(--foreground)]">
         {label}
       </label>
       <input
         id={id}
         className={cn(
-          "rounded-xl border bg-[hsl(var(--background))] px-4 py-2.5 text-sm text-[hsl(var(--foreground))] outline-none transition-all duration-200",
-          "placeholder:text-[hsl(var(--muted-foreground))]",
+          "rounded-xl border bg-[var(--background)] px-4 py-2.5 text-sm text-[var(--foreground)] outline-none transition-all duration-200",
+          "placeholder:text-[var(--muted-foreground)]",
           "focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)]",
           error
             ? "border-red-400 focus:ring-red-300/40"
-            : "border-[hsl(var(--border))]"
+            : "border-[var(--border)]"
         )}
         {...props}
       />
@@ -132,523 +159,27 @@ function SelectField({
 } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={id} className="text-sm font-medium text-[hsl(var(--foreground))]">
+      <label htmlFor={id} className="text-sm font-medium text-[var(--foreground)]">
         {label}
       </label>
       <select
         id={id}
         className={cn(
-          "rounded-xl border bg-[hsl(var(--background))] px-4 py-2.5 text-sm text-[hsl(var(--foreground))] outline-none transition-all duration-200",
+          "rounded-xl border bg-[var(--background)] px-4 py-2.5 text-sm text-[var(--foreground)] outline-none transition-all duration-200",
           "focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)]",
           error
             ? "border-red-400 focus:ring-red-300/40"
-            : "border-[hsl(var(--border))]"
+            : "border-[var(--border)]"
         )}
         {...props}
       >
-        <option value="">Select…</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
           </option>
         ))}
       </select>
       <FieldError msg={error} />
-    </div>
-  );
-}
-
-// ─── Order Summary ────────────────────────────────────────────────────────────
-
-function OrderSummary({
-  items,
-  shippingMethod,
-}: {
-  items: CartItem[];
-  shippingMethod: ShippingAddress["shippingMethod"];
-}) {
-  const t = useTranslations();
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shippingCost =
-    subtotal >= FREE_SHIPPING_THRESHOLD
-      ? 0
-      : SHIPPING_RATES[shippingMethod] ?? SHIPPING_RATES.standard;
-  const tax = subtotal * TAX_RATE;
-  const total = subtotal + shippingCost + tax;
-
-  return (
-    <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
-      <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[hsl(var(--foreground))]">
-        <ShoppingBag className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
-        {t("checkout.summary.title")}
-      </h2>
-
-      {items.length === 0 ? (
-        <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          {t("checkout.summary.empty")}
-        </p>
-      ) : (
-        <ul className="mb-4 divide-y divide-[hsl(var(--border))]">
-          {items.map((item) => (
-            <li key={item.bookId} className="flex items-start gap-3 py-3">
-              <img
-                src={item.coverImage}
-                alt={item.title}
-                className="h-14 w-10 rounded-lg object-cover shadow-sm ring-1 ring-black/5"
-              />
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm font-medium leading-snug text-[hsl(var(--foreground))] line-clamp-2">
-                  {item.title}
-                </span>
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                  {item.author}
-                </span>
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                  {t("checkout.summary.qty")} {item.quantity}
-                </span>
-              </div>
-              <span className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                ${(item.price * item.quantity).toFixed(2)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="space-y-2 border-t border-[hsl(var(--border))] pt-4 text-sm">
-        <div className="flex justify-between text-[hsl(var(--muted-foreground))]">
-          <span>{t("checkout.summary.subtotal")}</span>
-          <span>${subtotal.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-[hsl(var(--muted-foreground))]">
-          <span>{t("checkout.summary.shipping")}</span>
-          <span>
-            {shippingCost === 0 ? (
-              <span className="font-medium text-green-600">{t("checkout.summary.free")}</span>
-            ) : (
-              `$${shippingCost.toFixed(2)}`
-            )}
-          </span>
-        </div>
-        <div className="flex justify-between text-[hsl(var(--muted-foreground))]">
-          <span>{t("checkout.summary.tax")}</span>
-          <span>${tax.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between border-t border-[hsl(var(--border))] pt-3 text-base font-bold text-[hsl(var(--foreground))]">
-          <span>{t("checkout.summary.total")}</span>
-          <span>${total.toFixed(2)}</span>
-        </div>
-      </div>
-
-      {subtotal < FREE_SHIPPING_THRESHOLD && (
-        <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-2.5 text-xs text-[hsl(var(--foreground))]">
-          <Truck className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
-          {t("checkout.summary.freeShippingHint", {
-            amount: (FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2),
-          })}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ─── Step Indicator ───────────────────────────────────────────────────────────
-
-function StepIndicator({ current }: { current: Step }) {
-  const currentIdx = STEPS.findIndex((s) => s.id === current);
-  return (
-    <nav aria-label="Checkout steps" className="mb-8">
-      <ol className="flex items-center gap-0">
-        {STEPS.map((step, idx) => {
-          const done = idx < currentIdx;
-          const active = idx === currentIdx;
-          return (
-            <li key={step.id} className="flex flex-1 items-center">
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-300",
-                    done
-                      ? "border-[var(--accent)] bg-[var(--accent)] text-black"
-                      : active
-                      ? "border-[var(--accent)] bg-[hsl(var(--background))] text-[var(--accent)]"
-                      : "border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--muted-foreground))]"
-                  )}
-                  aria-current={active ? "step" : undefined}
-                >
-                  {done ? <CheckCircle className="h-4 w-4" /> : step.icon}
-                </div>
-                <span
-                  className={cn(
-                    "text-xs font-medium",
-                    active
-                      ? "text-[hsl(var(--foreground))]"
-                      : "text-[hsl(var(--muted-foreground))]"
-                  )}
-                >
-                  {step.label}
-                </span>
-              </div>
-              {idx < STEPS.length - 1 && (
-                <div
-                  className={cn(
-                    "mx-2 mb-5 h-0.5 flex-1 transition-all duration-500",
-                    done ? "bg-[var(--accent)]" : "bg-[hsl(var(--border))]"
-                  )}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
-
-// ─── Shipping Form ────────────────────────────────────────────────────────────
-
-function ShippingForm({
-  data,
-  onChange,
-  errors,
-}: {
-  data: ShippingAddress;
-  onChange: (d: ShippingAddress) => void;
-  errors: Partial<Record<keyof ShippingAddress, string>>;
-}) {
-  const t = useTranslations();
-  const set = (field: keyof ShippingAddress) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => onChange({ ...data, [field]: e.target.value });
-
-  return (
-    <div className="space-y-5">
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-[hsl(var(--foreground))]">
-        <MapPin className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
-        {t("checkout.shipping.title")}
-      </h2>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <InputField
-          label={t("checkout.shipping.fullName")}
-          id="fullName"
-          value={data.fullName}
-          onChange={set("fullName")}
-          placeholder="Jane Austen"
-          autoComplete="name"
-          error={errors.fullName}
-          className="sm:col-span-2"
-        />
-        <InputField
-          label={t("checkout.shipping.email")}
-          id="email"
-          type="email"
-          value={data.email}
-          onChange={set("email")}
-          placeholder="jane@example.com"
-          autoComplete="email"
-          error={errors.email}
-          className="sm:col-span-2"
-        />
-        <InputField
-          label={t("checkout.shipping.address1")}
-          id="addressLine1"
-          value={data.addressLine1}
-          onChange={set("addressLine1")}
-          placeholder="123 Bookshelf Lane"
-          autoComplete="address-line1"
-          error={errors.addressLine1}
-          className="sm:col-span-2"
-        />
-        <InputField
-          label={t("checkout.shipping.address2")}
-          id="addressLine2"
-          value={data.addressLine2 ?? ""}
-          onChange={set("addressLine2")}
-          placeholder="Apt 4B (optional)"
-          autoComplete="address-line2"
-          className="sm:col-span-2"
-        />
-        <InputField
-          label={t("checkout.shipping.city")}
-          id="city"
-          value={data.city}
-          onChange={set("city")}
-          placeholder="New York"
-          autoComplete="address-level2"
-          error={errors.city}
-        />
-        <SelectField
-          label={t("checkout.shipping.state")}
-          id="state"
-          value={data.state}
-          onChange={set("state")}
-          options={US_STATES}
-          error={errors.state}
-        />
-        <InputField
-          label={t("checkout.shipping.postalCode")}
-          id="postalCode"
-          value={data.postalCode}
-          onChange={set("postalCode")}
-          placeholder="10001"
-          autoComplete="postal-code"
-          error={errors.postalCode}
-        />
-        <SelectField
-          label={t("checkout.shipping.country")}
-          id="country"
-          value={data.country}
-          onChange={set("country")}
-          options={COUNTRIES}
-          error={errors.country}
-        />
-      </div>
-
-      <div>
-        <p className="mb-2 text-sm font-medium text-[hsl(var(--foreground))]">
-          {t("checkout.shipping.method")}
-        </p>
-        <div className="space-y-2">
-          {(
-            [
-              {
-                id: "standard",
-                label: t("checkout.shipping.standard"),
-                detail: t("checkout.shipping.standardDetail"),
-                price: `$${SHIPPING_RATES.standard.toFixed(2)}`,
-              },
-              {
-                id: "express",
-                label: t("checkout.shipping.express"),
-                detail: t("checkout.shipping.expressDetail"),
-                price: `$${SHIPPING_RATES.express.toFixed(2)}`,
-              },
-              {
-                id: "free",
-                label: t("checkout.shipping.free"),
-                detail: t("checkout.shipping.freeDetail"),
-                price: t("checkout.summary.free"),
-              },
-            ] as const
-          ).map((opt) => (
-            <label
-              key={opt.id}
-              className={cn(
-                "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all duration-200",
-                data.shippingMethod === opt.id
-                  ? "border-[var(--accent)] bg-[var(--accent)]/5"
-                  : "border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:border-[var(--accent)]/40"
-              )}
-            >
-              <input
-                type="radio"
-                name="shippingMethod"
-                value={opt.id}
-                checked={data.shippingMethod === opt.id}
-                onChange={set("shippingMethod")}
-                className="accent-[var(--accent)]"
-              />
-              <div className="flex flex-1 items-center justify-between">
-                <div>
-                  <span className="text-sm font-medium text-[hsl(var(--foreground))]">
-                    {opt.label}
-                  </span>
-                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{opt.detail}</p>
-                </div>
-                <span className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                  {opt.price}
-                </span>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Payment Form ─────────────────────────────────────────────────────────────
-
-function PaymentForm({
-  data,
-  onChange,
-  errors,
-}: {
-  data: PaymentDetails;
-  onChange: (d: PaymentDetails) => void;
-  errors: Partial<Record<keyof PaymentDetails, string>>;
-}) {
-  const t = useTranslations();
-  const set =
-    (field: keyof PaymentDetails) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      let val: string | boolean = e.target.value;
-      if (field === "sameAsShipping") val = e.target.checked;
-      if (field === "cardNumber") val = formatCard(e.target.value);
-      if (field === "expiryDate") val = formatExpiry(e.target.value);
-      if (field === "cvv") val = e.target.value.replace(/\D/g, "").slice(0, 4);
-      onChange({ ...data, [field]: val });
-    };
-
-  return (
-    <div className="space-y-5">
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-[hsl(var(--foreground))]">
-        <CreditCard className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
-        {t("checkout.payment.title")}
-      </h2>
-
-      <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
-        <div className="mb-3 flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]">
-          <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-          {t("checkout.payment.secure")}
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InputField
-            label={t("checkout.payment.cardholderName")}
-            id="cardholderName"
-            value={data.cardholderName}
-            onChange={set("cardholderName")}
-            placeholder="Jane Austen"
-            autoComplete="cc-name"
-            error={errors.cardholderName}
-            className="sm:col-span-2"
-          />
-          <InputField
-            label={t("checkout.payment.cardNumber")}
-            id="cardNumber"
-            value={data.cardNumber}
-            onChange={set("cardNumber")}
-            placeholder="1234 5678 9012 3456"
-            autoComplete="cc-number"
-            inputMode="numeric"
-            error={errors.cardNumber}
-            className="sm:col-span-2"
-          />
-          <InputField
-            label={t("checkout.payment.expiry")}
-            id="expiryDate"
-            value={data.expiryDate}
-            onChange={set("expiryDate")}
-            placeholder="MM/YY"
-            autoComplete="cc-exp"
-            inputMode="numeric"
-            error={errors.expiryDate}
-          />
-          <InputField
-            label={t("checkout.payment.cvv")}
-            id="cvv"
-            type="password"
-            value={data.cvv}
-            onChange={set("cvv")}
-            placeholder="•••"
-            autoComplete="cc-csc"
-            inputMode="numeric"
-            error={errors.cvv}
-          />
-        </div>
-      </div>
-
-      <label className="flex cursor-pointer items-center gap-3">
-        <input
-          type="checkbox"
-          checked={data.sameAsShipping}
-          onChange={set("sameAsShipping")}
-          className="h-4 w-4 rounded accent-[var(--accent)]"
-        />
-        <span className="text-sm text-[hsl(var(--foreground))]">
-          {t("checkout.payment.sameAsShipping")}
-        </span>
-      </label>
-
-      <div className="flex items-center gap-3 rounded-xl bg-[hsl(var(--muted))]/40 px-4 py-3 text-xs text-[hsl(var(--muted-foreground))]">
-        <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span>{t("checkout.payment.disclaimer")}</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Review Step ──────────────────────────────────────────────────────────────
-
-function ReviewStep({
-  shipping,
-  payment,
-  items,
-}: {
-  shipping: ShippingAddress;
-  payment: PaymentDetails;
-  items: CartItem[];
-}) {
-  const t = useTranslations();
-  const maskedCard =
-    payment.cardNumber.length >= 4
-      ? `•••• •••• •••• ${payment.cardNumber.replace(/\s/g, "").slice(-4)}`
-      : t("checkout.review.noCard");
-
-  return (
-    <div className="space-y-5">
-      <h2 className="text-lg font-semibold text-[hsl(var(--foreground))]">
-        {t("checkout.review.title")}
-      </h2>
-
-      <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
-        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[hsl(var(--foreground))]">
-          <MapPin className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
-          {t("checkout.review.shippingTo")}
-        </h3>
-        <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          {shipping.fullName}
-          <br />
-          {shipping.addressLine1}
-          {shipping.addressLine2 ? `, ${shipping.addressLine2}` : ""}
-          <br />
-          {shipping.city}, {shipping.state} {shipping.postalCode}
-          <br />
-          {shipping.country}
-          <br />
-          {shipping.email}
-        </p>
-        <p className="mt-2 text-xs font-medium capitalize text-[var(--accent)]">
-          {shipping.shippingMethod} shipping
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
-        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[hsl(var(--foreground))]">
-          <CreditCard className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
-          {t("checkout.review.paymentMethod")}
-        </h3>
-        <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          {payment.cardholderName}
-          <br />
-          {maskedCard}
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
-        <h3 className="mb-3 text-sm font-semibold text-[hsl(var(--foreground))]">
-          {t("checkout.review.items")} ({items.length})
-        </h3>
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li
-              key={item.bookId}
-              className="flex items-center justify-between text-sm"
-            >
-              <span className="text-[hsl(var(--foreground))]">
-                {item.title}{" "}
-                <span className="text-[hsl(var(--muted-foreground))]">
-                  x{item.quantity}
-                </span>
-              </span>
-              <span className="font-medium text-[hsl(var(--foreground))]">
-                ${(item.price * item.quantity).toFixed(2)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }
@@ -659,9 +190,11 @@ export default function CheckoutPage() {
   const t = useTranslations();
   const router = useRouter();
 
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [step, setStep] = useState<Step>("shipping");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [mounted, setMounted] = useState(false);
+  const [isPlacing, setIsPlacing] = useState(false);
+  const [placeError, setPlaceError] = useState<string | null>(null);
 
   const [shipping, setShipping] = useState<ShippingAddress>({
     fullName: "",
@@ -669,279 +202,648 @@ export default function CheckoutPage() {
     addressLine1: "",
     addressLine2: "",
     city: "",
-    state: "",
+    state: "AL",
     postalCode: "",
     country: "United States",
-    shippingMethod: "standard",
+    shippingMethod: "free",
   });
 
   const [payment, setPayment] = useState<PaymentDetails>({
-    cardholderName: "",
     cardNumber: "",
-    expiryDate: "",
+    cardName: "",
+    expiry: "",
     cvv: "",
-    sameAsShipping: true,
   });
 
-  const [shippingErrors, setShippingErrors] = useState<
-    Partial<Record<keyof ShippingAddress, string>>
-  >({});
-  const [paymentErrors, setPaymentErrors] = useState<
-    Partial<Record<keyof PaymentDetails, string>>
-  >({});
+  const [shippingErrors, setShippingErrors] = useState<Partial<ShippingAddress>>({});
+  const [paymentErrors, setPaymentErrors] = useState<Partial<PaymentDetails>>({});
 
   useEffect(() => {
+    setMounted(true);
     try {
       const raw = localStorage.getItem("pageturner_cart");
       if (raw) setCartItems(JSON.parse(raw) as CartItem[]);
     } catch {
-      setCartItems([]);
+      // ignore
     }
   }, []);
 
+  // ─── Derived totals ───────────────────────────────────────────────────────
+
+  const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const selectedRate = SHIPPING_RATES.find((r) => r.id === shipping.shippingMethod) ?? SHIPPING_RATES[0];
+  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : selectedRate.price;
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + shippingCost + tax;
+
+  // ─── Validation ───────────────────────────────────────────────────────────
+
   const validateShipping = useCallback((): boolean => {
-    const errs: Partial<Record<keyof ShippingAddress, string>> = {};
-    if (!shipping.fullName.trim()) errs.fullName = "Full name is required.";
-    if (!shipping.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email))
-      errs.email = "A valid email is required.";
-    if (!shipping.addressLine1.trim()) errs.addressLine1 = "Address is required.";
-    if (!shipping.city.trim()) errs.city = "City is required.";
-    if (!shipping.state) errs.state = "State is required.";
-    if (!shipping.postalCode.trim()) errs.postalCode = "Postal code is required.";
-    if (!shipping.country) errs.country = "Country is required.";
+    const errs: Partial<ShippingAddress> = {};
+    if (!shipping.fullName.trim()) errs.fullName = "Full name is required";
+    if (!shipping.email.trim() || !/^[^@]+@[^@]+\.[^@]+$/.test(shipping.email))
+      errs.email = "A valid email is required";
+    if (!shipping.addressLine1.trim()) errs.addressLine1 = "Address is required";
+    if (!shipping.city.trim()) errs.city = "City is required";
+    if (!shipping.postalCode.trim()) errs.postalCode = "Postal code is required";
     setShippingErrors(errs);
     return Object.keys(errs).length === 0;
   }, [shipping]);
 
   const validatePayment = useCallback((): boolean => {
-    const errs: Partial<Record<keyof PaymentDetails, string>> = {};
-    if (!payment.cardholderName.trim())
-      errs.cardholderName = "Cardholder name is required.";
+    const errs: Partial<PaymentDetails> = {};
     const digits = payment.cardNumber.replace(/\s/g, "");
-    if (digits.length < 13 || digits.length > 16)
-      errs.cardNumber = "Enter a valid card number.";
-    const [mm, yy] = payment.expiryDate.split("/");
-    const month = parseInt(mm ?? "0", 10);
-    const year = parseInt(yy ?? "0", 10) + 2000;
-    const now = new Date();
-    if (
-      !mm ||
-      !yy ||
-      month < 1 ||
-      month > 12 ||
-      year < now.getFullYear() ||
-      (year === now.getFullYear() && month < now.getMonth() + 1)
-    )
-      errs.expiryDate = "Enter a valid expiry date.";
-    if (payment.cvv.length < 3) errs.cvv = "Enter a valid CVV.";
+    if (digits.length < 16) errs.cardNumber = "Enter a valid 16-digit card number";
+    if (!payment.cardName.trim()) errs.cardName = "Name on card is required";
+    if (!/^\d{2}\/\d{2}$/.test(payment.expiry)) errs.expiry = "Enter expiry as MM/YY";
+    if (payment.cvv.length < 3) errs.cvv = "CVV must be 3–4 digits";
     setPaymentErrors(errs);
     return Object.keys(errs).length === 0;
   }, [payment]);
 
-  const handleNext = () => {
-    if (step === "shipping") {
-      if (validateShipping()) setStep("payment");
-    } else if (step === "payment") {
-      if (validatePayment()) setStep("review");
-    }
+  // ─── Step navigation ──────────────────────────────────────────────────────
+
+  const handleShippingNext = () => {
+    if (validateShipping()) setStep("payment");
   };
 
-  const handleBack = () => {
-    if (step === "payment") setStep("shipping");
-    else if (step === "review") setStep("payment");
+  const handlePaymentNext = () => {
+    if (validatePayment()) setStep("review");
   };
+
+  // ─── Place order ──────────────────────────────────────────────────────────
 
   const handlePlaceOrder = async () => {
-    setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-
-    const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-    const shippingCost =
-      subtotal >= FREE_SHIPPING_THRESHOLD
-        ? 0
-        : SHIPPING_RATES[shipping.shippingMethod] ?? SHIPPING_RATES.standard;
-    const tax = subtotal * TAX_RATE;
-    const total = subtotal + shippingCost + tax;
-
-    const deliveryDays =
-      shipping.shippingMethod === "express"
-        ? 2
-        : shipping.shippingMethod === "free"
-        ? 10
-        : 5;
-    const deliveryDate = new Date();
-    deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
-
-    const order = {
-      orderNumber: generateOrderNumber(),
-      items: cartItems,
-      shipping,
-      subtotal,
-      shippingCost,
-      tax,
-      total,
-      estimatedDelivery: deliveryDate.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      placedAt: new Date().toISOString(),
-    };
-
-    try {
-      localStorage.setItem("pageturner_last_order", JSON.stringify(order));
-      localStorage.removeItem("pageturner_cart");
-    } catch {
-      // ignore storage errors
+    if (!validateShipping() || !validatePayment()) {
+      setStep("shipping");
+      return;
     }
 
-    router.push("/order-confirmation");
+    setIsPlacing(true);
+    setPlaceError(null);
+
+    try {
+      const orderNumber = generateOrderNumber();
+
+      // Get current user (null for guest checkout)
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Persist order to Supabase
+      const { error: insertError } = await supabase.from("orders").insert({
+        order_number: orderNumber,
+        items: cartItems,
+        subtotal,
+        tax,
+        shipping_cost: shippingCost,
+        total,
+        shipping_name: shipping.fullName,
+        shipping_email: shipping.email,
+        shipping_address_line1: shipping.addressLine1,
+        shipping_city: shipping.city,
+        shipping_state: shipping.state,
+        shipping_postal_code: shipping.postalCode,
+        shipping_country: shipping.country,
+        shipping_method: shipping.shippingMethod,
+        user_id: user?.id ?? null,
+      });
+
+      if (insertError) {
+        // Non-fatal: log but continue so the user still gets a confirmation
+        console.error("Failed to persist order to Supabase:", insertError.message);
+      }
+
+      // Write to localStorage for the order-confirmation page
+      const orderData = {
+        orderNumber,
+        items: cartItems,
+        shipping,
+        subtotal,
+        tax,
+        shippingCost,
+        total,
+        placedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("pageturner_last_order", JSON.stringify(orderData));
+
+      // Clear cart
+      localStorage.removeItem("pageturner_cart");
+
+      router.push("/order-confirmation");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setPlaceError(message);
+      setIsPlacing(false);
+    }
   };
 
-  const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  // ─── Render helpers ───────────────────────────────────────────────────────
+
+  const stepIndex = STEPS.findIndex((s) => s.id === step);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <main className="min-h-screen bg-[var(--background)] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-[var(--muted-foreground)]" />
+          <h1 className="font-display text-2xl font-bold text-[var(--foreground)] mb-2">Your cart is empty</h1>
+          <p className="text-[var(--muted-foreground)] mb-6">Add some books before checking out.</p>
+          <Link
+            href="/catalog"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--accent-hover)]"
+          >
+            Browse Catalog
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-[hsl(var(--background))] pb-24 pt-10">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
-        <Reveal>
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-[hsl(var(--foreground))] sm:text-4xl">
-              {t("checkout.heading")}
-            </h1>
-            <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-              {t("checkout.subheading")}
-            </p>
-          </div>
-        </Reveal>
-
-        {/* Empty cart guard */}
-        {cartItems.length === 0 && (
-          <Reveal>
-            <div className="flex flex-col items-center gap-4 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] py-20 text-center">
-              <ShoppingBag className="h-12 w-12 text-[hsl(var(--muted-foreground))]" aria-hidden="true" />
-              <p className="text-lg font-semibold text-[hsl(var(--foreground))]">
-                {t("checkout.emptyCart")}
-              </p>
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                {t("checkout.emptyCartSub")}
-              </p>
+    <main className="min-h-screen bg-[var(--background)] pb-24">
+      {/* Header */}
+      <Reveal>
+        <section className="bg-[var(--primary)] py-12">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <div className="flex items-center gap-3 mb-6">
               <Link
-                href="/catalog"
-                className="mt-2 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:opacity-90"
+                href="/cart"
+                className="text-white/60 hover:text-white text-sm transition-colors"
               >
-                {t("checkout.browseCta")}
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                Cart
               </Link>
+              <ChevronRight className="h-4 w-4 text-white/40" />
+              <span className="text-white text-sm font-medium">Checkout</span>
             </div>
-          </Reveal>
-        )}
+            <h1 className="font-display text-3xl font-bold text-white">Checkout</h1>
 
-        {cartItems.length > 0 && (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
-            {/* Left column */}
-            <div>
-              <Reveal>
-                <StepIndicator current={step} />
-              </Reveal>
-
-              <Reveal>
-                <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
-                  <motion.div
-                    key={step}
-                    variants={fadeInUp}
-                    initial="hidden"
-                    animate="visible"
+            {/* Step indicator */}
+            <div className="mt-8 flex items-center gap-0">
+              {STEPS.map((s, idx) => (
+                <div key={s.id} className="flex items-center">
+                  <button
+                    onClick={() => {
+                      if (idx < stepIndex) setStep(s.id);
+                    }}
+                    disabled={idx > stepIndex}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
+                      s.id === step
+                        ? "bg-[var(--accent)] text-[var(--primary)]"
+                        : idx < stepIndex
+                        ? "text-white/80 hover:text-white cursor-pointer"
+                        : "text-white/40 cursor-not-allowed"
+                    )}
                   >
-                    {step === "shipping" && (
-                      <ShippingForm
-                        data={shipping}
-                        onChange={setShipping}
-                        errors={shippingErrors}
-                      />
-                    )}
-                    {step === "payment" && (
-                      <PaymentForm
-                        data={payment}
-                        onChange={setPayment}
-                        errors={paymentErrors}
-                      />
-                    )}
-                    {step === "review" && (
-                      <ReviewStep
-                        shipping={shipping}
-                        payment={payment}
-                        items={cartItems}
-                      />
-                    )}
-                  </motion.div>
+                    {s.icon}
+                    <span className="hidden sm:inline">{s.label}</span>
+                  </button>
+                  {idx < STEPS.length - 1 && (
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 mx-1",
+                        idx < stepIndex ? "text-white/60" : "text-white/20"
+                      )}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </Reveal>
 
-                  {/* Navigation buttons */}
-                  <div className="mt-8 flex items-center justify-between gap-4 border-t border-[hsl(var(--border))] pt-6">
-                    {step !== "shipping" ? (
-                      <button
-                        onClick={handleBack}
-                        className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-5 py-2.5 text-sm font-medium text-[hsl(var(--foreground))] transition-all duration-200 hover:border-[var(--accent)]/50 hover:bg-[hsl(var(--card))]"
-                      >
-                        {t("checkout.back")}
-                      </button>
-                    ) : (
-                      <Link
-                        href="/cart"
-                        className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-5 py-2.5 text-sm font-medium text-[hsl(var(--foreground))] transition-all duration-200 hover:border-[var(--accent)]/50 hover:bg-[hsl(var(--card))]"
-                      >
-                        {t("checkout.backToCart")}
-                      </Link>
-                    )}
+      {/* Body */}
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: form */}
+          <div className="lg:col-span-2 space-y-6">
 
-                    {step !== "review" ? (
-                      <motion.button
-                        onClick={handleNext}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-7 py-2.5 text-sm font-semibold text-black shadow-[0_2px_12px_rgba(0,0,0,0.15)] transition-all duration-200 hover:opacity-90"
-                      >
-                        {t("checkout.continue")}
-                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                      </motion.button>
-                    ) : (
-                      <motion.button
-                        onClick={handlePlaceOrder}
-                        disabled={isSubmitting}
-                        whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                        whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-7 py-2.5 text-sm font-semibold text-black shadow-[0_2px_12px_rgba(0,0,0,0.15)] transition-all duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
-                            {t("checkout.placing")}
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="h-4 w-4" aria-hidden="true" />
-                            {t("checkout.placeOrder")} — ${(subtotal + (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_RATES[shipping.shippingMethod] ?? SHIPPING_RATES.standard) + subtotal * TAX_RATE).toFixed(2)}
-                          </>
-                        )}
-                      </motion.button>
-                    )}
+            {/* ── Shipping step ── */}
+            {step === "shipping" && (
+              <motion.div
+                key="shipping"
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]"
+              >
+                <h2 className="font-display text-xl font-bold text-[var(--foreground)] mb-6 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-[var(--accent)]" />
+                  Shipping Information
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField
+                    label="Full Name"
+                    id="fullName"
+                    value={shipping.fullName}
+                    onChange={(e) => setShipping((p) => ({ ...p, fullName: e.target.value }))}
+                    error={shippingErrors.fullName}
+                    className="sm:col-span-2"
+                    autoComplete="name"
+                  />
+                  <InputField
+                    label="Email Address"
+                    id="email"
+                    type="email"
+                    value={shipping.email}
+                    onChange={(e) => setShipping((p) => ({ ...p, email: e.target.value }))}
+                    error={shippingErrors.email}
+                    className="sm:col-span-2"
+                    autoComplete="email"
+                  />
+                  <InputField
+                    label="Address Line 1"
+                    id="addressLine1"
+                    value={shipping.addressLine1}
+                    onChange={(e) => setShipping((p) => ({ ...p, addressLine1: e.target.value }))}
+                    error={shippingErrors.addressLine1}
+                    className="sm:col-span-2"
+                    autoComplete="address-line1"
+                  />
+                  <InputField
+                    label="Address Line 2 (optional)"
+                    id="addressLine2"
+                    value={shipping.addressLine2}
+                    onChange={(e) => setShipping((p) => ({ ...p, addressLine2: e.target.value }))}
+                    className="sm:col-span-2"
+                    autoComplete="address-line2"
+                  />
+                  <InputField
+                    label="City"
+                    id="city"
+                    value={shipping.city}
+                    onChange={(e) => setShipping((p) => ({ ...p, city: e.target.value }))}
+                    error={shippingErrors.city}
+                    autoComplete="address-level2"
+                  />
+                  <SelectField
+                    label="State"
+                    id="state"
+                    options={US_STATES}
+                    value={shipping.state}
+                    onChange={(e) => setShipping((p) => ({ ...p, state: e.target.value }))}
+                    autoComplete="address-level1"
+                  />
+                  <InputField
+                    label="Postal Code"
+                    id="postalCode"
+                    value={shipping.postalCode}
+                    onChange={(e) => setShipping((p) => ({ ...p, postalCode: e.target.value }))}
+                    error={shippingErrors.postalCode}
+                    autoComplete="postal-code"
+                  />
+                  <SelectField
+                    label="Country"
+                    id="country"
+                    options={COUNTRIES}
+                    value={shipping.country}
+                    onChange={(e) => setShipping((p) => ({ ...p, country: e.target.value }))}
+                    autoComplete="country-name"
+                  />
+                </div>
+
+                {/* Shipping method */}
+                <div className="mt-6">
+                  <p className="text-sm font-medium text-[var(--foreground)] mb-3 flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-[var(--accent)]" />
+                    Shipping Method
+                  </p>
+                  <div className="space-y-2">
+                    {SHIPPING_RATES.map((rate) => {
+                      const effectivePrice =
+                        rate.id === "free" || subtotal >= FREE_SHIPPING_THRESHOLD
+                          ? 0
+                          : rate.price;
+                      return (
+                        <label
+                          key={rate.id}
+                          className={cn(
+                            "flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all duration-200",
+                            shipping.shippingMethod === rate.id
+                              ? "border-[var(--accent)] bg-[var(--accent-light)]"
+                              : "border-[var(--border)] hover:border-[var(--accent)]/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="shippingMethod"
+                              value={rate.id}
+                              checked={shipping.shippingMethod === rate.id}
+                              onChange={() =>
+                                setShipping((p) => ({ ...p, shippingMethod: rate.id }))
+                              }
+                              className="accent-[var(--accent)]"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-[var(--foreground)]">
+                                {rate.label}
+                              </p>
+                              <p className="text-xs text-[var(--muted-foreground)]">
+                                {rate.description}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-sm font-semibold text-[var(--foreground)]">
+                            {effectivePrice === 0 ? "Free" : `$${effectivePrice.toFixed(2)}`}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
-              </Reveal>
-            </div>
 
-            {/* Right column — Order Summary */}
-            <div className="lg:sticky lg:top-24 lg:self-start">
-              <Reveal delay={0.1}>
-                <OrderSummary
-                  items={cartItems}
-                  shippingMethod={shipping.shippingMethod}
-                />
-              </Reveal>
-            </div>
+                <button
+                  onClick={handleShippingNext}
+                  className="mt-6 w-full rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  Continue to Payment
+                </button>
+              </motion.div>
+            )}
+
+            {/* ── Payment step ── */}
+            {step === "payment" && (
+              <motion.div
+                key="payment"
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]"
+              >
+                <h2 className="font-display text-xl font-bold text-[var(--foreground)] mb-6 flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-[var(--accent)]" />
+                  Payment Details
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField
+                    label="Card Number"
+                    id="cardNumber"
+                    value={payment.cardNumber}
+                    onChange={(e) =>
+                      setPayment((p) => ({ ...p, cardNumber: formatCard(e.target.value) }))
+                    }
+                    error={paymentErrors.cardNumber}
+                    placeholder="1234 5678 9012 3456"
+                    className="sm:col-span-2"
+                    autoComplete="cc-number"
+                    inputMode="numeric"
+                  />
+                  <InputField
+                    label="Name on Card"
+                    id="cardName"
+                    value={payment.cardName}
+                    onChange={(e) => setPayment((p) => ({ ...p, cardName: e.target.value }))}
+                    error={paymentErrors.cardName}
+                    className="sm:col-span-2"
+                    autoComplete="cc-name"
+                  />
+                  <InputField
+                    label="Expiry (MM/YY)"
+                    id="expiry"
+                    value={payment.expiry}
+                    onChange={(e) =>
+                      setPayment((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))
+                    }
+                    error={paymentErrors.expiry}
+                    placeholder="MM/YY"
+                    autoComplete="cc-exp"
+                    inputMode="numeric"
+                  />
+                  <InputField
+                    label="CVV"
+                    id="cvv"
+                    value={payment.cvv}
+                    onChange={(e) =>
+                      setPayment((p) => ({
+                        ...p,
+                        cvv: e.target.value.replace(/\D/g, "").slice(0, 4),
+                      }))
+                    }
+                    error={paymentErrors.cvv}
+                    placeholder="123"
+                    autoComplete="cc-csc"
+                    inputMode="numeric"
+                  />
+                </div>
+
+                <p className="mt-4 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                  <Lock className="h-3.5 w-3.5" />
+                  Your payment information is encrypted and secure.
+                </p>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() => setStep("shipping")}
+                    className="flex-1 rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--accent-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handlePaymentNext}
+                    className="flex-1 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  >
+                    Review Order
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Review step ── */}
+            {step === "review" && (
+              <motion.div
+                key="review"
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                className="space-y-4"
+              >
+                {/* Shipping summary */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-[var(--accent)]" />
+                      Shipping
+                    </h2>
+                    <button
+                      onClick={() => setStep("shipping")}
+                      className="text-xs text-[var(--accent)] hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <p className="text-sm text-[var(--foreground)]">{shipping.fullName}</p>
+                  <p className="text-sm text-[var(--muted-foreground)]">{shipping.email}</p>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    {shipping.addressLine1}
+                    {shipping.addressLine2 ? `, ${shipping.addressLine2}` : ""}
+                  </p>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    {shipping.city}, {shipping.state} {shipping.postalCode}, {shipping.country}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--foreground)] font-medium">
+                    {SHIPPING_RATES.find((r) => r.id === shipping.shippingMethod)?.label ?? "Standard"}
+                  </p>
+                </div>
+
+                {/* Payment summary */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-[var(--accent)]" />
+                      Payment
+                    </h2>
+                    <button
+                      onClick={() => setStep("payment")}
+                      className="text-xs text-[var(--accent)] hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <p className="text-sm text-[var(--foreground)]">{payment.cardName}</p>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    Card ending in {payment.cardNumber.replace(/\s/g, "").slice(-4)}
+                  </p>
+                </div>
+
+                {/* Items summary */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                  <h2 className="font-display text-lg font-bold text-[var(--foreground)] flex items-center gap-2 mb-4">
+                    <ShoppingBag className="h-4 w-4 text-[var(--accent)]" />
+                    Order Items
+                  </h2>
+                  <ul className="space-y-3">
+                    {cartItems.map((item) => (
+                      <li key={`${item.bookId}-${item.format}`} className="flex items-center gap-3">
+                        <div className="h-12 w-9 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--accent-light)] flex-shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.coverImage}
+                            alt={item.title}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[var(--foreground)] truncate">{item.title}</p>
+                          <p className="text-xs text-[var(--muted-foreground)]">{item.author} &middot; Qty {item.quantity}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-[var(--foreground)] flex-shrink-0">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {placeError && (
+                  <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {placeError}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep("payment")}
+                    className="flex-1 rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--accent-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isPlacing}
+                    className="flex-1 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] flex items-center justify-center gap-2"
+                  >
+                    {isPlacing ? (
+                      <>
+                        <span className="h-4 w-4 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+                        Placing Order...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" />
+                        Place Order
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
-        )}
+
+          {/* Right: order summary */}
+          <div className="lg:col-span-1">
+            <Reveal>
+              <div className="sticky top-24 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.10)]">
+                <h2 className="font-display text-lg font-bold text-[var(--foreground)] mb-4">Order Summary</h2>
+
+                <ul className="space-y-2 mb-4">
+                  {cartItems.map((item) => (
+                    <li
+                      key={`${item.bookId}-${item.format}`}
+                      className="flex justify-between text-sm"
+                    >
+                      <span className="text-[var(--muted-foreground)] truncate max-w-[70%]">
+                        {item.title} &times; {item.quantity}
+                      </span>
+                      <span className="font-medium text-[var(--foreground)]">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="border-t border-[var(--border)] pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[var(--muted-foreground)]">Subtotal</span>
+                    <span className="text-[var(--foreground)]">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[var(--muted-foreground)]">Shipping</span>
+                    <span className="text-[var(--foreground)]">
+                      {shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[var(--muted-foreground)]">Tax (8%)</span>
+                    <span className="text-[var(--foreground)]">${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold border-t border-[var(--border)] pt-3 mt-2">
+                    <span className="text-[var(--foreground)]">Total</span>
+                    <span className="text-[var(--foreground)]">${total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {subtotal >= FREE_SHIPPING_THRESHOLD && (
+                  <p className="mt-4 rounded-lg bg-[var(--accent-light)] px-3 py-2 text-xs text-[var(--foreground)] font-medium flex items-center gap-1.5">
+                    <Truck className="h-3.5 w-3.5 text-[var(--accent)]" />
+                    You qualify for free shipping!
+                  </p>
+                )}
+
+                <p className="mt-4 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                  <Lock className="h-3.5 w-3.5" />
+                  Secure, encrypted checkout
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </div>
       </div>
     </main>
   );
