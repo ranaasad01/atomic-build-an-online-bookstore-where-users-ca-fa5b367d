@@ -131,8 +131,8 @@ function LoadingSpinner() {
 
 function BookNotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-      <div className="text-center max-w-md px-6">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
+      <div className="text-center max-w-md">
         <BookOpen className="w-16 h-16 text-[var(--border)] mx-auto mb-4" />
         <h1 className="font-display text-2xl font-bold text-[var(--foreground)] mb-2">
           Book not found
@@ -160,10 +160,7 @@ function RelatedBookCard({ book }: { book: RelatedBook }) {
       variants={fadeInUp}
       className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.14)]"
     >
-      <Link
-        href={`/book-detail?id=${book.id}`}
-        className="relative block aspect-[2/3] overflow-hidden bg-[var(--accent-light)]"
-      >
+      <Link href={`/book-detail?id=${book.id}`} className="block relative aspect-[2/3] overflow-hidden bg-[var(--accent-light)]">
         <img
           src={book.cover_image}
           alt={book.title}
@@ -201,7 +198,7 @@ function RelatedBookCard({ book }: { book: RelatedBook }) {
 function BookDetailInner() {
   const t = useTranslations();
   const searchParams = useSearchParams();
-  const bookId = searchParams.get("id");
+  const bookId = searchParams.get("id") ?? "";
   const { addItem } = useCart();
 
   const [book, setBook] = useState<BookRow | null>(null);
@@ -209,11 +206,11 @@ function BookDetailInner() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  const [selectedFormat, setSelectedFormat] = useState(FORMATS[1]); // Paperback default
+  const [selectedFormat, setSelectedFormat] = useState(FORMATS[1]); // default: Paperback
   const [quantity, setQuantity] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
-  const [shared, setShared] = useState(false);
+  const [activeTab, setActiveTab] = useState<"description" | "details" | "reviews">("description");
 
   // ── Fetch book from Supabase ──────────────────────────────────────────────
   useEffect(() => {
@@ -227,9 +224,13 @@ function BookDetailInner() {
 
     async function fetchBook() {
       setLoading(true);
+      setNotFound(false);
+
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
+
+        // 1) Main book fetch
+        const { data: bookData, error: bookError } = await supabase
           .from("books")
           .select("*")
           .eq("id", bookId)
@@ -237,36 +238,35 @@ function BookDetailInner() {
 
         if (cancelled) return;
 
-        if (error || !data) {
+        if (bookError || !bookData) {
           setNotFound(true);
           setLoading(false);
           return;
         }
 
-        setBook(data as BookRow);
+        setBook(bookData as BookRow);
 
-        // Fetch related books by same genre
-        const { data: related } = await supabase
+        // 2) Related books fetch (same genre, different id)
+        const { data: relatedData } = await supabase
           .from("books")
-          .select("id, title, author, price, cover_image, rating, is_bestseller")
-          .eq("genre", (data as BookRow).genre)
-          .neq("id", (data as BookRow).id)
+          .select("id,title,author,price,cover_image,rating,is_bestseller")
+          .eq("genre", (bookData as BookRow).genre)
+          .neq("id", bookId)
           .limit(4);
 
-        if (!cancelled) {
-          setRelatedBooks((related as RelatedBook[]) ?? []);
-        }
+        if (cancelled) return;
+
+        setRelatedBooks((relatedData as RelatedBook[]) ?? []);
       } catch (err) {
-        if (!cancelled) {
-          console.error("Failed to fetch book:", err);
-          setNotFound(true);
-        }
+        console.error("Failed to fetch book:", err);
+        if (!cancelled) setNotFound(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
     fetchBook();
+
     return () => {
       cancelled = true;
     };
@@ -290,13 +290,11 @@ function BookDetailInner() {
   }
 
   function handleShare() {
-    if (typeof window !== "undefined") {
-      navigator.clipboard
-        .writeText(window.location.href)
-        .catch(() => {});
+    if (typeof navigator !== "undefined" && navigator.share) {
+      navigator.share({ title: book?.title, url: window.location.href }).catch(() => {});
+    } else if (typeof navigator !== "undefined") {
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
     }
-    setShared(true);
-    setTimeout(() => setShared(false), 2000);
   }
 
   // ── Render states ─────────────────────────────────────────────────────────
@@ -306,12 +304,10 @@ function BookDetailInner() {
 
   const finalPrice = book.price + selectedFormat.priceModifier;
   const outOfStock = book.stock_quantity === 0;
-  const publishYear = book.published_at
-    ? new Date(book.published_at).getFullYear()
-    : null;
+  const lowStock = book.stock_quantity > 0 && book.stock_quantity <= 5;
 
   return (
-    <main className="min-h-screen bg-[var(--background)] pb-24">
+    <div className="min-h-screen bg-[var(--background)]">
       {/* Breadcrumb */}
       <div className="border-b border-[var(--border)] bg-[var(--card)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -319,6 +315,13 @@ function BookDetailInner() {
             <Link href="/" className="hover:text-[var(--accent)] transition-colors">Home</Link>
             <ChevronRight className="w-3 h-3" />
             <Link href="/catalog" className="hover:text-[var(--accent)] transition-colors">Catalog</Link>
+            <ChevronRight className="w-3 h-3" />
+            <Link
+              href={`/catalog?genre=${encodeURIComponent(book.genre)}`}
+              className="hover:text-[var(--accent)] transition-colors"
+            >
+              {book.genre}
+            </Link>
             <ChevronRight className="w-3 h-3" />
             <span className="text-[var(--foreground)] font-medium line-clamp-1">{book.title}</span>
           </nav>
@@ -329,27 +332,18 @@ function BookDetailInner() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20">
           {/* Left — Cover */}
-          <motion.div
-            variants={scaleIn}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col items-center lg:items-start gap-6"
-          >
-            <div className="relative w-full max-w-sm mx-auto lg:mx-0">
-              <div className="aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(26,26,46,0.18)] ring-1 ring-black/5">
-                <img
-                  src={book.cover_image}
-                  alt={book.title}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/images/book-placeholder.jpg";
-                  }}
-                />
-              </div>
+          <Reveal className="flex flex-col items-center lg:items-start gap-6">
+            <motion.div
+              variants={scaleIn}
+              initial="hidden"
+              animate="visible"
+              className="relative w-full max-w-sm mx-auto lg:mx-0"
+            >
               {/* Badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
+              <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
                 {book.is_bestseller && (
-                  <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--primary)] shadow-sm">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--primary)] shadow-sm">
+                    <Award className="w-3 h-3" />
                     Bestseller
                   </span>
                 )}
@@ -359,14 +353,26 @@ function BookDetailInner() {
                   </span>
                 )}
               </div>
-            </div>
+
+              {/* Cover image */}
+              <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl border border-[var(--border)] shadow-[0_8px_40px_rgba(26,26,46,0.16)] bg-[var(--accent-light)]">
+                <img
+                  src={book.cover_image}
+                  alt={book.title}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/images/book-placeholder.jpg";
+                  }}
+                />
+              </div>
+            </motion.div>
 
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto lg:mx-0">
               {[
-                { icon: Truck, label: "Free shipping over $40" },
+                { icon: Truck, label: "Free shipping over $50" },
                 { icon: RotateCcw, label: "30-day returns" },
-                { icon: Award, label: "Quality guaranteed" },
+                { icon: Award, label: "Curated selection" },
               ].map(({ icon: Icon, label }) => (
                 <div
                   key={label}
@@ -377,47 +383,48 @@ function BookDetailInner() {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </Reveal>
 
           {/* Right — Details */}
           <motion.div
-            variants={fadeInUp}
+            variants={staggerContainer}
             initial="hidden"
             animate="visible"
             className="flex flex-col gap-6"
           >
             {/* Genre tag */}
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
+            <motion.div variants={fadeInUp}>
+              <Link
+                href={`/catalog?genre=${encodeURIComponent(book.genre)}`}
+                className="inline-block text-xs font-semibold uppercase tracking-widest text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+              >
                 {book.genre}
-              </span>
-            </div>
+              </Link>
+            </motion.div>
 
             {/* Title & Author */}
-            <div>
+            <motion.div variants={fadeInUp} className="space-y-1">
               <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight text-[var(--foreground)] text-balance">
                 {book.title}
               </h1>
-              <p className="mt-2 text-lg text-[var(--muted-foreground)]">
+              <p className="text-lg text-[var(--muted-foreground)]">
                 by <span className="font-medium text-[var(--foreground)]">{book.author}</span>
               </p>
-            </div>
+            </motion.div>
 
             {/* Rating */}
-            <div className="flex items-center gap-3">
+            <motion.div variants={fadeInUp} className="flex items-center gap-3">
               <StarRating rating={book.rating} size="md" />
-              <span className="text-sm font-semibold text-[var(--foreground)]">
-                {book.rating.toFixed(1)}
-              </span>
+              <span className="text-sm font-semibold text-[var(--foreground)]">{book.rating.toFixed(1)}</span>
               {book.rating_count !== undefined && (
                 <span className="text-sm text-[var(--muted-foreground)]">
                   ({book.rating_count.toLocaleString("en-US")} reviews)
                 </span>
               )}
-            </div>
+            </motion.div>
 
             {/* Price */}
-            <div className="flex items-baseline gap-3">
+            <motion.div variants={fadeInUp} className="flex items-baseline gap-3">
               <span className="font-display text-3xl font-bold text-[var(--foreground)]">
                 {formatPrice(finalPrice)}
               </span>
@@ -426,14 +433,12 @@ function BookDetailInner() {
                   {formatPrice(book.price)}
                 </span>
               )}
-            </div>
+            </motion.div>
 
             {/* Format selector */}
-            <div>
-              <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-                {t("bookDetail.format")}
-              </p>
-              <div className="flex gap-2">
+            <motion.div variants={fadeInUp} className="space-y-2">
+              <p className="text-sm font-medium text-[var(--foreground)]">Format</p>
+              <div className="flex gap-2 flex-wrap">
                 {FORMATS.map((fmt) => (
                   <button
                     key={fmt.id}
@@ -441,7 +446,7 @@ function BookDetailInner() {
                     className={cn(
                       "rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-200",
                       selectedFormat.id === fmt.id
-                        ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)] shadow-sm"
+                        ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--foreground)]"
                         : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
                     )}
                   >
@@ -459,194 +464,250 @@ function BookDetailInner() {
                   </button>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
-            {/* Quantity stepper */}
-            <div>
-              <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-                {t("bookDetail.quantity")}
-              </p>
+            {/* Quantity + Add to cart */}
+            <motion.div variants={fadeInUp} className="flex flex-col gap-3">
+              {/* Stock status */}
+              {outOfStock ? (
+                <p className="text-sm font-medium text-red-500">Out of stock</p>
+              ) : lowStock ? (
+                <p className="text-sm font-medium text-amber-600">
+                  Only {book.stock_quantity} left in stock
+                </p>
+              ) : (
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  In stock ({book.stock_quantity} available)
+                </p>
+              )}
+
               <div className="flex items-center gap-3">
+                {/* Quantity stepper */}
                 <div className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)] px-1 py-0.5">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
                     aria-label="Decrease quantity"
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)] disabled:opacity-40"
                   >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-3.5 w-3.5" />
                   </button>
                   <span className="w-8 text-center text-sm font-semibold tabular-nums text-[var(--foreground)]">
                     {quantity}
                   </span>
                   <button
-                    onClick={() =>
-                      setQuantity((q) =>
-                        Math.min(q + 1, book.stock_quantity || 99)
-                      )
-                    }
+                    onClick={() => setQuantity((q) => Math.min(book.stock_quantity, q + 1))}
+                    disabled={quantity >= book.stock_quantity}
                     aria-label="Increase quantity"
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)]"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-light)] hover:text-[var(--foreground)] disabled:opacity-40"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                {book.stock_quantity > 0 && book.stock_quantity <= 10 && (
-                  <span className="text-xs font-medium text-amber-600">
-                    Only {book.stock_quantity} left in stock
-                  </span>
-                )}
-                {outOfStock && (
-                  <span className="text-xs font-medium text-red-500">Out of stock</span>
-                )}
+
+                {/* Add to cart */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={outOfStock || added}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200",
+                    outOfStock
+                      ? "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
+                      : added
+                      ? "bg-green-600 text-white"
+                      : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white"
+                  )}
+                >
+                  {added ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      {t("bookDetail.added")}
+                    </>
+                  ) : outOfStock ? (
+                    t("bookDetail.outOfStock")
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4" />
+                      {t("bookDetail.addToCart")}
+                    </>
+                  )}
+                </button>
+
+                {/* Wishlist */}
+                <button
+                  onClick={() => setWishlisted((w) => !w)}
+                  aria-label={wishlisted ? t("bookDetail.wishlisted") : t("bookDetail.wishlist")}
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center rounded-xl border transition-all duration-200",
+                    wishlisted
+                      ? "border-red-300 bg-red-50 text-red-500"
+                      : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-red-300 hover:text-red-400"
+                  )}
+                >
+                  <Heart className={cn("h-4 w-4", wishlisted && "fill-current")} />
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={handleShare}
+                  aria-label={t("bookDetail.share")}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
               </div>
-            </div>
+            </motion.div>
 
-            {/* CTA buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleAddToCart}
-                disabled={outOfStock || added}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200",
-                  outOfStock
-                    ? "bg-[var(--border)] text-[var(--muted-foreground)] cursor-not-allowed"
-                    : added
-                    ? "bg-green-600 text-white"
-                    : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] hover:text-white shadow-[0_2px_8px_rgba(200,169,110,0.35)]"
-                )}
+            {/* View cart link (shown after adding) */}
+            {added && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3"
               >
-                {added ? (
-                  <><Check className="h-4 w-4" /> {t("bookDetail.added")}</>
-                ) : outOfStock ? (
-                  t("bookDetail.outOfStock")
-                ) : (
-                  <><ShoppingCart className="h-4 w-4" /> {t("bookDetail.addToCart")}</>
-                )}
-              </button>
-
-              <button
-                onClick={() => setWishlisted((w) => !w)}
-                aria-label={wishlisted ? t("bookDetail.wishlisted") : t("bookDetail.wishlist")}
-                className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-xl border transition-all duration-200",
-                  wishlisted
-                    ? "border-red-300 bg-red-50 text-red-500"
-                    : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-red-300 hover:text-red-400"
-                )}
-              >
-                <Heart className={cn("h-5 w-5", wishlisted && "fill-current")} />
-              </button>
-
-              <button
-                onClick={handleShare}
-                aria-label="Share"
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                {shared ? <Check className="h-5 w-5 text-green-600" /> : <Share2 className="h-5 w-5" />}
-              </button>
-            </div>
-
-            {/* Book metadata */}
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                Book Details
-              </h2>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                {book.isbn && (
-                  <>
-                    <dt className="text-[var(--muted-foreground)]">ISBN</dt>
-                    <dd className="font-medium text-[var(--foreground)]">{book.isbn}</dd>
-                  </>
-                )}
-                {book.publisher && (
-                  <>
-                    <dt className="text-[var(--muted-foreground)]">Publisher</dt>
-                    <dd className="font-medium text-[var(--foreground)]">{book.publisher}</dd>
-                  </>
-                )}
-                {publishYear && (
-                  <>
-                    <dt className="text-[var(--muted-foreground)]">Published</dt>
-                    <dd className="font-medium text-[var(--foreground)]">{publishYear}</dd>
-                  </>
-                )}
-                {book.pages && (
-                  <>
-                    <dt className="text-[var(--muted-foreground)]">Pages</dt>
-                    <dd className="font-medium text-[var(--foreground)]">{book.pages}</dd>
-                  </>
-                )}
-                <dt className="text-[var(--muted-foreground)]">Genre</dt>
-                <dd className="font-medium text-[var(--foreground)]">{book.genre}</dd>
-              </dl>
-            </div>
+                <span className="text-sm text-green-700 font-medium">Added to your cart!</span>
+                <Link
+                  href="/cart"
+                  className="text-sm font-semibold text-green-700 underline underline-offset-2 hover:text-green-800"
+                >
+                  View Cart
+                </Link>
+              </motion.div>
+            )}
           </motion.div>
         </div>
 
-        {/* Description */}
+        {/* Tabs — Description / Details / Reviews */}
         <Reveal className="mt-16">
-          <div className="max-w-3xl">
-            <h2 className="font-display text-2xl font-bold text-[var(--foreground)] mb-4">
-              {t("bookDetail.description")}
-            </h2>
-            <p className="text-[var(--muted-foreground)] leading-relaxed text-pretty">
-              {book.description}
-            </p>
+          <div className="border-b border-[var(--border)] mb-8">
+            <div className="flex gap-0 overflow-x-auto">
+              {(["description", "details", "reviews"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "shrink-0 px-6 py-3 text-sm font-medium capitalize border-b-2 transition-all duration-200",
+                    activeTab === tab
+                      ? "border-[var(--accent)] text-[var(--foreground)]"
+                      : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  )}
+                >
+                  {tab === "reviews" ? `Reviews (${REVIEWS.length})` : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
-        </Reveal>
 
-        {/* Reviews */}
-        <Reveal className="mt-16">
-          <h2 className="font-display text-2xl font-bold text-[var(--foreground)] mb-8">
-            {t("bookDetail.reviews")}
-          </h2>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {REVIEWS.map((review) => (
-              <motion.article
-                key={review.id}
-                variants={fadeInUp}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-10 h-10 rounded-full border border-[var(--border)] bg-[var(--accent-light)]"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--foreground)]">{review.name}</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">{review.date}</p>
+          {/* Description tab */}
+          {activeTab === "description" && (
+            <motion.div
+              key="description"
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              className="max-w-3xl"
+            >
+              <p className="text-[var(--foreground)] leading-relaxed text-base">
+                {book.description}
+              </p>
+            </motion.div>
+          )}
+
+          {/* Details tab */}
+          {activeTab === "details" && (
+            <motion.div
+              key="details"
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              className="max-w-xl"
+            >
+              <dl className="divide-y divide-[var(--border)]">
+                {[
+                  { label: "Author", value: book.author },
+                  { label: "Genre", value: book.genre },
+                  book.isbn ? { label: "ISBN", value: book.isbn } : null,
+                  book.publisher ? { label: "Publisher", value: book.publisher } : null,
+                  book.published_at
+                    ? {
+                        label: "Published",
+                        value: new Date(book.published_at).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }),
+                      }
+                    : null,
+                  book.pages ? { label: "Pages", value: book.pages.toString() } : null,
+                ]
+                  .filter(Boolean)
+                  .map((row) => (
+                    <div key={row!.label} className="flex py-3 gap-4">
+                      <dt className="w-32 shrink-0 text-sm font-medium text-[var(--muted-foreground)]">
+                        {row!.label}
+                      </dt>
+                      <dd className="text-sm text-[var(--foreground)]">{row!.value}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </motion.div>
+          )}
+
+          {/* Reviews tab */}
+          {activeTab === "reviews" && (
+            <motion.div
+              key="reviews"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="space-y-6 max-w-3xl"
+            >
+              {REVIEWS.map((review) => (
+                <motion.article
+                  key={review.id}
+                  variants={fadeInUp}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                >
+                  <div className="flex items-start gap-4">
+                    <img
+                      src={review.avatar}
+                      alt={review.name}
+                      className="w-10 h-10 rounded-full border border-[var(--border)] bg-[var(--accent-light)] shrink-0"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--foreground)]">{review.name}</p>
+                          <p className="text-xs text-[var(--muted-foreground)]">{review.date}</p>
+                        </div>
+                        <StarRating rating={review.rating} />
+                      </div>
+                      <h4 className="mt-2 text-sm font-semibold text-[var(--foreground)]">{review.title}</h4>
+                      <p className="mt-1 text-sm text-[var(--muted-foreground)] leading-relaxed">{review.body}</p>
+                    </div>
                   </div>
-                </div>
-                <StarRating rating={review.rating} />
-                <h3 className="mt-2 text-sm font-semibold text-[var(--foreground)]">{review.title}</h3>
-                <p className="mt-1 text-sm text-[var(--muted-foreground)] leading-relaxed">{review.body}</p>
-              </motion.article>
-            ))}
-          </motion.div>
+                </motion.article>
+              ))}
+            </motion.div>
+          )}
         </Reveal>
 
         {/* Related Books */}
         {relatedBooks.length > 0 && (
-          <Reveal className="mt-16">
+          <Reveal className="mt-20">
             <div className="flex items-center justify-between mb-8">
               <h2 className="font-display text-2xl font-bold text-[var(--foreground)]">
-                {t("bookDetail.relatedBooks")}
+                More in {book.genre}
               </h2>
               <Link
                 href={`/catalog?genre=${encodeURIComponent(book.genre)}`}
                 className="flex items-center gap-1 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
               >
-                View all <ChevronRight className="w-4 h-4" />
+                View all
+                <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
             <motion.div
@@ -654,7 +715,7 @@ function BookDetailInner() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-80px" }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
             >
               {relatedBooks.map((rb) => (
                 <RelatedBookCard key={rb.id} book={rb} />
@@ -663,11 +724,11 @@ function BookDetailInner() {
           </Reveal>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 
-// ─── Page export (wraps inner in Suspense for useSearchParams) ────────────────
+// ─── Page (Suspense boundary for useSearchParams) ─────────────────────────────
 
 export default function BookDetailPage() {
   return (

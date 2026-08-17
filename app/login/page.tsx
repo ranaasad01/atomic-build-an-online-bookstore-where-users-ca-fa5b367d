@@ -80,8 +80,15 @@ export default function LoginPage() {
             style={{ borderColor: "var(--border)" }}
           >
             {/* Logo mark */}
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-5 shadow-sm" style={{ backgroundColor: "var(--accent)" }}>
-              <BookOpen className="w-6 h-6" style={{ color: "var(--primary)" }} aria-hidden="true" />
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-5 shadow-sm"
+              style={{ backgroundColor: "var(--accent)" }}
+            >
+              <BookOpen
+                className="w-6 h-6"
+                style={{ color: "var(--primary)" }}
+                aria-hidden="true"
+              />
             </div>
 
             <h1
@@ -109,7 +116,10 @@ export default function LoginPage() {
                   className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
                   role="alert"
                 >
-                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" aria-hidden="true" />
+                  <AlertCircle
+                    className="h-4 w-4 text-red-500 mt-0.5 shrink-0"
+                    aria-hidden="true"
+                  />
                   <p className="text-sm text-red-700 leading-snug">{error}</p>
                 </motion.div>
               )}
@@ -138,7 +148,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     className={cn(
-                      "w-full rounded-xl border pl-10 pr-4 py-2.5 text-sm outline-none transition-all duration-200",
+                      "w-full rounded-xl border py-2.5 pl-10 pr-4 text-sm outline-none transition-all duration-200",
                       "placeholder:text-[var(--muted-foreground)]",
                       "focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)]"
                     )}
@@ -184,7 +194,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className={cn(
-                      "w-full rounded-xl border pl-10 pr-11 py-2.5 text-sm outline-none transition-all duration-200",
+                      "w-full rounded-xl border py-2.5 pl-10 pr-11 text-sm outline-none transition-all duration-200",
                       "placeholder:text-[var(--muted-foreground)]",
                       "focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)]"
                     )}
@@ -198,7 +208,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition-colors duration-200 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition-colors duration-200 hover:bg-[var(--accent-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     style={{ color: "var(--muted-foreground)" }}
                   >
                     {showPassword ? (
@@ -215,8 +225,8 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className={cn(
-                  "w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                  "w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2",
                   loading
                     ? "opacity-60 cursor-not-allowed"
                     : "hover:opacity-90 active:scale-[0.98]"
@@ -230,9 +240,8 @@ export default function LoginPage() {
                   <span className="flex items-center justify-center gap-2">
                     <svg
                       className="h-4 w-4 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
                       viewBox="0 0 24 24"
+                      fill="none"
                       aria-hidden="true"
                     >
                       <circle
@@ -249,7 +258,7 @@ export default function LoginPage() {
                         d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                       />
                     </svg>
-                    Signing in...
+                    Signing in…
                   </span>
                 ) : (
                   "Sign in"
@@ -258,35 +267,29 @@ export default function LoginPage() {
             </form>
 
             {/* Divider */}
-            <div className="relative my-6">
+            <div className="my-6 flex items-center gap-3">
               <div
-                className="absolute inset-0 flex items-center"
-                aria-hidden="true"
+                className="flex-1 h-px"
+                style={{ backgroundColor: "var(--border)" }}
+              />
+              <span
+                className="text-xs"
+                style={{ color: "var(--muted-foreground)" }}
               >
-                <div
-                  className="w-full border-t"
-                  style={{ borderColor: "var(--border)" }}
-                />
-              </div>
-              <div className="relative flex justify-center">
-                <span
-                  className="px-3 text-xs"
-                  style={{
-                    backgroundColor: "var(--card)",
-                    color: "var(--muted-foreground)",
-                  }}
-                >
-                  New to {APP_NAME}?
-                </span>
-              </div>
+                New to {APP_NAME}?
+              </span>
+              <div
+                className="flex-1 h-px"
+                style={{ backgroundColor: "var(--border)" }}
+              />
             </div>
 
             {/* Sign up link */}
             <Link
               href="/signup"
               className={cn(
-                "flex w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium transition-all duration-200",
-                "hover:bg-[var(--accent-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
+                "flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold transition-all duration-200",
+                "hover:bg-[var(--accent-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
               )}
               style={{
                 borderColor: "var(--border)",
@@ -299,27 +302,26 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Footer note */}
-        <motion.p
-          variants={fadeInUp}
+        <p
           className="mt-6 text-center text-xs"
           style={{ color: "var(--muted-foreground)" }}
         >
           By signing in you agree to our{" "}
           <Link
             href="/terms"
-            className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+            className="underline underline-offset-2 hover:text-[var(--foreground)] transition-colors duration-200"
           >
-            Terms of Service
+            Terms
           </Link>{" "}
           and{" "}
           <Link
             href="/privacy"
-            className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+            className="underline underline-offset-2 hover:text-[var(--foreground)] transition-colors duration-200"
           >
             Privacy Policy
           </Link>
           .
-        </motion.p>
+        </p>
       </motion.div>
     </div>
   );

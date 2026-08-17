@@ -155,7 +155,12 @@
     "total": "Total",
     "deliverTo": "Deliver to",
     "shippingAddress": "Shipping address",
-    "shippingMethod": "Shipping method"
+    "shippingMethod": "Shipping method",
+    "confirmationNote": "Your order has been confirmed and will be shipped soon.",
+    "confirmationSent": "Confirmation email sent to your inbox",
+    "enjoyReading": "Enjoy your new reads!",
+    "eyebrow": "Order Confirmed",
+    "reviewNudge": "Got your books? Leave a review and help other readers discover great titles."
   },
   "shipping-info": {
     "heading": "Shipping Information",

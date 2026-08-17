@@ -28,7 +28,7 @@
     "genres_cta": "Explorar géneros",
     "genres_heading": "Explorar por género",
     "genres_label": "Géneros",
-    "headline": "Vinilo para cada momento",
+    "headline": "Vinilo para cada estado de ánimo",
     "subheadline": "Descubre ediciones raras, álbumes clásicos y nuevos lanzamientos.",
     "testimonials_heading": "Amado por coleccionistas",
     "testimonials_label": "Testimonios",
@@ -51,8 +51,8 @@
     "outOfStock": "Agotado",
     "bestseller": "Más vendido",
     "featured": "Destacado",
-    "addToCart": "Agregar al Carrito",
-    "added": "Agregado",
+    "addToCart": "Añadir al Carrito",
+    "added": "Añadido",
     "noResults": "No se encontraron libros",
     "noResultsHint": "Intenta ajustar tus filtros o término de búsqueda.",
     "showing": "Mostrando",
@@ -66,7 +66,7 @@
     "price10to15": "$10 – $15",
     "price15to20": "$15 – $20",
     "overPrice": "Más de $20",
-    "onlyLeft": "Solo {count} disponible",
+    "onlyLeft": "Solo {count} disponibles",
     "verifiedReaders": "Lectores verificados",
     "description": "Descripción",
     "viewCart": "Ver Carrito",
@@ -75,19 +75,19 @@
     "eyebrow": "Explora nuestra colección",
     "filterGenre": "Género",
     "filterPrice": "Precio",
-    "freeShippingNudge": "Envío gratis en pedidos mayores a $50",
+    "freeShippingNudge": "Envío gratis en pedidos superiores a $50",
     "results": "Resultados",
     "title": "Discos de Vinilo"
   },
   "cart": {
     "heading": "Tu Carrito",
     "emptyTitle": "Tu carrito está vacío",
-    "emptySubtitle": "Parece que aún no has agregado ningún libro.",
+    "emptySubtitle": "Parece que aún no has añadido ningún libro.",
     "browseCatalog": "Explorar Catálogo",
     "orderSummary": "Resumen del Pedido",
     "subtotal": "Subtotal",
     "shipping": "Envío",
-    "tax": "Impuesto",
+    "tax": "Impuestos",
     "total": "Total",
     "checkout": "Proceder al Pago",
     "continueShopping": "Continuar Comprando",
@@ -108,7 +108,7 @@
     "email": "Correo Electrónico",
     "address": "Dirección",
     "city": "Ciudad",
-    "state": "Estado",
+    "state": "Provincia",
     "postalCode": "Código Postal",
     "country": "País",
     "cardNumber": "Número de Tarjeta",
@@ -126,7 +126,7 @@
     "format": "Formato",
     "quantity": "Cantidad",
     "inStock": "En stock",
-    "lowStock": "Solo {count} disponible",
+    "lowStock": "Solo quedan {count}",
     "relatedBooks": "También te Puede Interesar",
     "reviews": "Opiniones de Clientes",
     "isbn": "ISBN",
@@ -150,12 +150,17 @@
     "shipping": "Envío",
     "subtitle": "Tu pedido está confirmado. Revisa tu correo para más detalles.",
     "subtotal": "Subtotal",
-    "tax": "Impuesto",
+    "tax": "Impuestos",
     "title": "Pedido confirmado",
     "total": "Total",
     "deliverTo": "Entregar a",
     "shippingAddress": "Dirección de envío",
-    "shippingMethod": "Método de envío"
+    "shippingMethod": "Método de envío",
+    "confirmationNote": "Tu pedido ha sido confirmado y será enviado pronto.",
+    "confirmationSent": "Correo de confirmación enviado a tu bandeja de entrada",
+    "enjoyReading": "¡Disfruta tus nuevas lecturas!",
+    "eyebrow": "Pedido Confirmado",
+    "reviewNudge": "¿Recibiste tus libros? Deja una reseña y ayuda a otros lectores a descubrir grandes títulos."
   },
   "shipping-info": {
     "heading": "Información de Envío",
@@ -163,7 +168,7 @@
   },
   "about": {
     "heading": "Acerca de PageTurner",
-    "body": "Nos apasiona conectar lectores con excelentes libros."
+    "body": "Nos apasiona conectar lectores con grandes libros."
   },
   "faq": {
     "heading": "Preguntas Frecuentes"
@@ -181,10 +186,10 @@
   },
   "signup": {
     "heading": "Crear Cuenta",
-    "email": "Correo Electrónico",
+    "email": "Correo electrónico",
     "password": "Contraseña",
-    "submit": "Crear Cuenta",
-    "hasAccount": "¿Ya tienes cuenta?",
-    "signIn": "Inicia sesión"
+    "submit": "Crear cuenta",
+    "hasAccount": "¿Ya tienes una cuenta?",
+    "signIn": "Iniciar sesión"
   }
 }

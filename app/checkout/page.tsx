@@ -137,9 +137,7 @@ function InputField({
           "rounded-xl border bg-[var(--background)] px-4 py-2.5 text-sm text-[var(--foreground)] outline-none transition-all duration-200",
           "placeholder:text-[var(--muted-foreground)]",
           "focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)]",
-          error
-            ? "border-red-400 focus:ring-red-400/30"
-            : "border-[var(--border)]"
+          error ? "border-red-400" : "border-[var(--border)]"
         )}
         {...props}
       />
@@ -172,9 +170,7 @@ function SelectField({
         className={cn(
           "rounded-xl border bg-[var(--background)] px-4 py-2.5 text-sm text-[var(--foreground)] outline-none transition-all duration-200",
           "focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)]",
-          error
-            ? "border-red-400 focus:ring-red-400/30"
-            : "border-[var(--border)]"
+          error ? "border-red-400" : "border-[var(--border)]"
         )}
         {...props}
       >
@@ -185,23 +181,23 @@ function SelectField({
   );
 }
 
-// ─── Step Indicator ───────────────────────────────────────────────────────────
+// ─── Step indicator ───────────────────────────────────────────────────────────
 
-function StepIndicator({ currentStep }: { currentStep: Step }) {
-  const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
+function StepIndicator({ current }: { current: Step }) {
+  const currentIdx = STEPS.findIndex((s) => s.id === current);
   return (
-    <div className="flex items-center justify-center gap-0 mb-8">
+    <div className="flex items-center justify-center gap-0 mb-10">
       {STEPS.map((step, idx) => {
-        const isCompleted = idx < currentIndex;
-        const isActive = idx === currentIndex;
+        const done = idx < currentIdx;
+        const active = idx === currentIdx;
         return (
           <div key={step.id} className="flex items-center">
             <div
               className={cn(
                 "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300",
-                isActive
+                active
                   ? "bg-[var(--accent)] text-[var(--primary)]"
-                  : isCompleted
+                  : done
                   ? "bg-[var(--accent-light)] text-[var(--accent)]"
                   : "bg-[var(--border)] text-[var(--muted-foreground)]"
               )}
@@ -219,7 +215,7 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
   );
 }
 
-// ─── Order Summary Sidebar ────────────────────────────────────────────────────
+// ─── Order summary sidebar ────────────────────────────────────────────────────
 
 function OrderSummary({
   subtotal,
@@ -236,26 +232,24 @@ function OrderSummary({
 }) {
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)] sticky top-24">
-      <h3 className="font-display text-lg font-bold text-[var(--foreground)] mb-4">
+      <h2 className="font-display text-lg font-bold text-[var(--foreground)] mb-4">
         Order Summary
-      </h3>
+      </h2>
       <div className="space-y-3 text-sm">
         <div className="flex justify-between text-[var(--muted-foreground)]">
           <span>Subtotal ({itemCount} {itemCount === 1 ? "item" : "items"})</span>
-          <span className="font-medium text-[var(--foreground)]">{formatPrice(subtotal)}</span>
+          <span>{formatPrice(subtotal)}</span>
         </div>
         <div className="flex justify-between text-[var(--muted-foreground)]">
           <span>Shipping</span>
-          <span className="font-medium text-[var(--foreground)]">
-            {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
-          </span>
+          <span>{shippingCost === 0 ? "Free" : formatPrice(shippingCost)}</span>
         </div>
         <div className="flex justify-between text-[var(--muted-foreground)]">
           <span>Tax (8%)</span>
-          <span className="font-medium text-[var(--foreground)]">{formatPrice(tax)}</span>
+          <span>{formatPrice(tax)}</span>
         </div>
-        <div className="border-t border-[var(--border)] pt-3 flex justify-between font-bold text-base">
-          <span className="text-[var(--foreground)]">Total</span>
+        <div className="border-t border-[var(--border)] pt-3 flex justify-between font-semibold text-[var(--foreground)]">
+          <span>Total</span>
           <span className="text-[var(--accent)]">{formatPrice(total)}</span>
         </div>
       </div>
@@ -266,21 +260,21 @@ function OrderSummary({
       )}
       <div className="mt-4 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
         <Lock className="h-3.5 w-3.5 text-[var(--accent)]" />
-        <span>Secure, encrypted checkout</span>
+        Secure, encrypted checkout
       </div>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CheckoutPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { items, subtotal, clearCart, mounted: cartMounted } = useCart();
+  const { items, totalItems, subtotal, clearCart, mounted } = useCart();
 
   const [step, setStep] = useState<Step>("shipping");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [shipping, setShipping] = useState<ShippingAddress>({
@@ -305,48 +299,46 @@ export default function CheckoutPage() {
   const [shippingErrors, setShippingErrors] = useState<Partial<ShippingAddress>>({});
   const [paymentErrors, setPaymentErrors] = useState<Partial<PaymentDetails>>({});
 
-  const selectedRate = SHIPPING_RATES.find((r) => r.id === shipping.shippingMethod) ?? SHIPPING_RATES[1];
-  const shippingCost = selectedRate.price;
-  const tax = subtotal * TAX_RATE;
-  const total = subtotal + shippingCost + tax;
-  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
-
   // Redirect to cart if empty (after mount)
   useEffect(() => {
-    if (cartMounted && items.length === 0) {
+    if (mounted && items.length === 0) {
       router.replace("/cart");
     }
-  }, [cartMounted, items.length, router]);
+  }, [mounted, items.length, router]);
+
+  const selectedRate = SHIPPING_RATES.find((r) => r.id === shipping.shippingMethod) ?? SHIPPING_RATES[1];
+  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : selectedRate.price;
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + shippingCost + tax;
 
   // ─── Validation ─────────────────────────────────────────────────────────────
 
   const validateShipping = useCallback((): boolean => {
-    const errors: Partial<ShippingAddress> = {};
-    if (!shipping.fullName.trim()) errors.fullName = "Full name is required";
-    if (!shipping.email.trim()) errors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email))
-      errors.email = "Enter a valid email address";
-    if (!shipping.addressLine1.trim()) errors.addressLine1 = "Address is required";
-    if (!shipping.city.trim()) errors.city = "City is required";
-    if (!shipping.postalCode.trim()) errors.postalCode = "Postal code is required";
-    if (shipping.country === "United States" && !shipping.state)
-      errors.state = "State is required";
-    setShippingErrors(errors);
-    return Object.keys(errors).length === 0;
+    const errs: Partial<ShippingAddress> = {};
+    if (!shipping.fullName.trim()) errs.fullName = "Full name is required.";
+    if (!shipping.email.trim()) errs.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email)) errs.email = "Enter a valid email.";
+    if (!shipping.addressLine1.trim()) errs.addressLine1 = "Address is required.";
+    if (!shipping.city.trim()) errs.city = "City is required.";
+    if (!shipping.state.trim()) errs.state = "State is required.";
+    if (!shipping.postalCode.trim()) errs.postalCode = "Postal code is required.";
+    if (!shipping.country) errs.country = "Country is required.";
+    setShippingErrors(errs);
+    return Object.keys(errs).length === 0;
   }, [shipping]);
 
   const validatePayment = useCallback((): boolean => {
-    const errors: Partial<PaymentDetails> = {};
-    const digits = payment.cardNumber.replace(/\s/g, "");
-    if (digits.length < 16) errors.cardNumber = "Enter a valid 16-digit card number";
-    if (!payment.cardName.trim()) errors.cardName = "Name on card is required";
-    if (!/^\d{2}\/\d{2}$/.test(payment.expiry)) errors.expiry = "Enter expiry as MM/YY";
-    if (payment.cvv.length < 3) errors.cvv = "Enter a valid CVV";
-    setPaymentErrors(errors);
-    return Object.keys(errors).length === 0;
+    const errs: Partial<PaymentDetails> = {};
+    const digits = payment.cardNumber.replace(/\D/g, "");
+    if (digits.length < 16) errs.cardNumber = "Enter a valid 16-digit card number.";
+    if (!payment.cardName.trim()) errs.cardName = "Name on card is required.";
+    if (!/^\d{2}\/\d{2}$/.test(payment.expiry)) errs.expiry = "Enter expiry as MM/YY.";
+    if (payment.cvv.replace(/\D/g, "").length < 3) errs.cvv = "Enter a valid CVV.";
+    setPaymentErrors(errs);
+    return Object.keys(errs).length === 0;
   }, [payment]);
 
-  // ─── Step navigation ─────────────────────────────────────────────────────────
+  // ─── Navigation ─────────────────────────────────────────────────────────────
 
   const handleShippingNext = useCallback(() => {
     if (validateShipping()) setStep("payment");
@@ -356,103 +348,83 @@ export default function CheckoutPage() {
     if (validatePayment()) setStep("review");
   }, [validatePayment]);
 
-  // ─── Place Order ─────────────────────────────────────────────────────────────
+  // ─── Place order (Supabase) ──────────────────────────────────────────────────
 
   const handlePlaceOrder = useCallback(async () => {
-    setIsSubmitting(true);
+    setSubmitting(true);
     setSubmitError(null);
 
     try {
-      const orderNumber = generateOrderNumber();
       const supabase = createClient();
 
-      // Get current user (may be null for guests)
-      const { data: { user } } = await supabase.auth.getUser();
+      // 1) Get current session (nullable — guest checkout is allowed)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id ?? null;
 
-      // Insert order row
+      // 2) Generate order number
+      const orderNumber = generateOrderNumber();
+
+      // 3) Insert into orders table
       const { data: orderRow, error: orderError } = await supabase
         .from("orders")
         .insert({
           order_number: orderNumber,
-          user_id: user?.id ?? null,
+          user_id: userId,
           subtotal,
           tax,
           shipping_cost: shippingCost,
           total,
           shipping_name: shipping.fullName,
           shipping_email: shipping.email,
-          shipping_address: shipping.addressLine1,
+          shipping_address: shipping.addressLine1 + (shipping.addressLine2 ? `, ${shipping.addressLine2}` : ""),
           shipping_city: shipping.city,
           shipping_state: shipping.state,
           shipping_postal_code: shipping.postalCode,
           shipping_country: shipping.country,
           shipping_method: shipping.shippingMethod,
-          status: "pending",
         })
         .select("id")
         .single();
 
       if (orderError || !orderRow) {
-        throw new Error(orderError?.message ?? "Failed to create order");
+        throw new Error(orderError?.message ?? "Failed to create order.");
       }
 
-      const orderId = orderRow.id as string;
+      const orderId = orderRow.id;
 
-      // Insert order items
-      const orderItems = items.map((item) => ({
-        order_id: orderId,
-        book_id: item.bookId,
-        title: item.title,
-        author: item.author,
-        price: item.price,
-        quantity: item.quantity,
-        format: item.format,
-        cover_image: item.coverImage,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
+      // 4) Insert order items
+      const { error: itemsError } = await supabase.from("order_items").insert(
+        items.map((item) => ({
+          order_id: orderId,
+          book_id: item.bookId,
+          title: item.title,
+          author: item.author,
+          price: item.price,
+          quantity: item.quantity,
+          format: item.format,
+          cover_image: item.coverImage,
+        }))
+      );
 
       if (itemsError) {
-        throw new Error(itemsError.message ?? "Failed to save order items");
+        throw new Error(itemsError.message ?? "Failed to save order items.");
       }
 
-      // Persist to sessionStorage for order-confirmation page
-      const storedOrder = {
-        id: orderId,
-        orderNumber,
-        items,
-        shipping: {
-          fullName: shipping.fullName,
-          email: shipping.email,
-          addressLine1: shipping.addressLine1,
-          city: shipping.city,
-          state: shipping.state,
-          postalCode: shipping.postalCode,
-          country: shipping.country,
-          shippingMethod: shipping.shippingMethod,
-        },
-        subtotal,
-        tax,
-        shippingCost,
-        total,
-        placedAt: new Date().toISOString(),
-      };
-
+      // 5) Persist order number for the confirmation page
       try {
-        sessionStorage.setItem("pageturner_last_order", JSON.stringify(storedOrder));
+        localStorage.setItem("pageturner_last_order", orderNumber);
       } catch {
         // ignore storage errors
       }
 
+      // 6) Clear cart and navigate
       clearCart();
       router.push("/order-confirmation");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       setSubmitError(message);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   }, [
     items,
@@ -465,12 +437,29 @@ export default function CheckoutPage() {
     router,
   ]);
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  // ─── Render guards ───────────────────────────────────────────────────────────
 
-  if (!cartMounted) {
+  if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="text-center">
+          <ShoppingBag className="h-12 w-12 text-[var(--muted-foreground)] mx-auto mb-4" />
+          <p className="text-[var(--muted-foreground)] mb-4">Your cart is empty.</p>
+          <Link
+            href="/catalog"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
+          >
+            Browse Catalog
+          </Link>
+        </div>
       </div>
     );
   }
@@ -481,199 +470,171 @@ export default function CheckoutPage() {
         {/* Header */}
         <Reveal>
           <div className="mb-8 text-center">
-            <Link
-              href="/cart"
-              className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--accent)] transition-colors duration-200 mb-4"
+            <h1
+              className="font-display text-3xl md:text-4xl font-bold text-[var(--foreground)] tracking-tight mb-2"
             >
-              <ChevronRight className="h-4 w-4 rotate-180" />
-              Back to cart
-            </Link>
-            <h1 className="font-display text-3xl font-bold text-[var(--foreground)] tracking-tight">
-              Checkout
+              {t("checkout.heading")}
             </h1>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              <Link href="/cart" className="hover:text-[var(--accent)] transition-colors duration-200">
+                ← Back to cart
+              </Link>
+            </p>
           </div>
         </Reveal>
 
         {/* Step indicator */}
-        <StepIndicator currentStep={step} />
+        <StepIndicator current={step} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ── Left: Form ── */}
+          {/* Main form area */}
           <div className="lg:col-span-2">
-            {/* SHIPPING STEP */}
+            {/* ── SHIPPING STEP ── */}
             {step === "shipping" && (
               <motion.div
-                key="shipping"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
-                className="space-y-6"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 md:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
               >
-                <motion.div
+                <motion.h2
                   variants={fadeInUp}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
+                  className="font-display text-xl font-bold text-[var(--foreground)] mb-6 flex items-center gap-2"
                 >
-                  <div className="flex items-center gap-2 mb-6">
-                    <MapPin className="h-5 w-5 text-[var(--accent)]" />
-                    <h2 className="font-display text-xl font-bold text-[var(--foreground)]">
-                      Shipping Address
-                    </h2>
-                  </div>
+                  <MapPin className="h-5 w-5 text-[var(--accent)]" />
+                  Shipping Information
+                </motion.h2>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField
-                      label="Full Name"
-                      id="fullName"
-                      value={shipping.fullName}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, fullName: e.target.value }))
-                      }
-                      error={shippingErrors.fullName}
-                      placeholder="Jane Smith"
-                      className="sm:col-span-2"
-                    />
-                    <InputField
-                      label="Email Address"
-                      id="email"
-                      type="email"
-                      value={shipping.email}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, email: e.target.value }))
-                      }
-                      error={shippingErrors.email}
-                      placeholder="jane@example.com"
-                      className="sm:col-span-2"
-                    />
-                    <InputField
-                      label="Address Line 1"
-                      id="addressLine1"
-                      value={shipping.addressLine1}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, addressLine1: e.target.value }))
-                      }
-                      error={shippingErrors.addressLine1}
-                      placeholder="123 Main St"
-                      className="sm:col-span-2"
-                    />
-                    <InputField
-                      label="Address Line 2 (optional)"
-                      id="addressLine2"
-                      value={shipping.addressLine2}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, addressLine2: e.target.value }))
-                      }
-                      placeholder="Apt 4B"
-                      className="sm:col-span-2"
-                    />
-                    <InputField
-                      label="City"
-                      id="city"
-                      value={shipping.city}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, city: e.target.value }))
-                      }
-                      error={shippingErrors.city}
-                      placeholder="New York"
-                    />
-                    <InputField
-                      label="Postal Code"
-                      id="postalCode"
-                      value={shipping.postalCode}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, postalCode: e.target.value }))
-                      }
-                      error={shippingErrors.postalCode}
-                      placeholder="10001"
-                    />
-                    <SelectField
-                      label="Country"
-                      id="country"
-                      value={shipping.country}
-                      onChange={(e) =>
-                        setShipping((prev) => ({ ...prev, country: e.target.value, state: "" }))
-                      }
-                    >
-                      {COUNTRIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </SelectField>
-                    {shipping.country === "United States" && (
-                      <SelectField
-                        label="State"
-                        id="state"
-                        value={shipping.state}
-                        onChange={(e) =>
-                          setShipping((prev) => ({ ...prev, state: e.target.value }))
-                        }
-                        error={shippingErrors.state}
-                      >
-                        <option value="">Select state</option>
-                        {US_STATES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </SelectField>
-                    )}
-                  </div>
+                <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField
+                    label="Full Name"
+                    id="fullName"
+                    placeholder="Jane Smith"
+                    value={shipping.fullName}
+                    onChange={(e) => setShipping((p) => ({ ...p, fullName: e.target.value }))}
+                    error={shippingErrors.fullName}
+                    className="sm:col-span-2"
+                  />
+                  <InputField
+                    label="Email Address"
+                    id="email"
+                    type="email"
+                    placeholder="jane@example.com"
+                    value={shipping.email}
+                    onChange={(e) => setShipping((p) => ({ ...p, email: e.target.value }))}
+                    error={shippingErrors.email}
+                    className="sm:col-span-2"
+                  />
+                  <InputField
+                    label="Address Line 1"
+                    id="addressLine1"
+                    placeholder="123 Main St"
+                    value={shipping.addressLine1}
+                    onChange={(e) => setShipping((p) => ({ ...p, addressLine1: e.target.value }))}
+                    error={shippingErrors.addressLine1}
+                    className="sm:col-span-2"
+                  />
+                  <InputField
+                    label="Address Line 2 (optional)"
+                    id="addressLine2"
+                    placeholder="Apt 4B"
+                    value={shipping.addressLine2}
+                    onChange={(e) => setShipping((p) => ({ ...p, addressLine2: e.target.value }))}
+                    className="sm:col-span-2"
+                  />
+                  <InputField
+                    label="City"
+                    id="city"
+                    placeholder="New York"
+                    value={shipping.city}
+                    onChange={(e) => setShipping((p) => ({ ...p, city: e.target.value }))}
+                    error={shippingErrors.city}
+                  />
+                  <SelectField
+                    label="State"
+                    id="state"
+                    value={shipping.state}
+                    onChange={(e) => setShipping((p) => ({ ...p, state: e.target.value }))}
+                    error={shippingErrors.state}
+                  >
+                    <option value="">Select state</option>
+                    {US_STATES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </SelectField>
+                  <InputField
+                    label="Postal Code"
+                    id="postalCode"
+                    placeholder="10001"
+                    value={shipping.postalCode}
+                    onChange={(e) => setShipping((p) => ({ ...p, postalCode: e.target.value }))}
+                    error={shippingErrors.postalCode}
+                  />
+                  <SelectField
+                    label="Country"
+                    id="country"
+                    value={shipping.country}
+                    onChange={(e) => setShipping((p) => ({ ...p, country: e.target.value }))}
+                    error={shippingErrors.country}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </SelectField>
                 </motion.div>
 
                 {/* Shipping method */}
-                <motion.div
-                  variants={fadeInUp}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
-                >
-                  <div className="flex items-center gap-2 mb-6">
-                    <Truck className="h-5 w-5 text-[var(--accent)]" />
-                    <h2 className="font-display text-xl font-bold text-[var(--foreground)]">
-                      Shipping Method
-                    </h2>
-                  </div>
-                  <div className="space-y-3">
-                    {SHIPPING_RATES.map((rate) => (
-                      <label
-                        key={rate.id}
-                        className={cn(
-                          "flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all duration-200",
-                          shipping.shippingMethod === rate.id
-                            ? "border-[var(--accent)] bg-[var(--accent-light)]"
-                            : "border-[var(--border)] hover:border-[var(--accent)]/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="shippingMethod"
-                            value={rate.id}
-                            checked={shipping.shippingMethod === rate.id}
-                            onChange={(e) =>
-                              setShipping((prev) => ({ ...prev, shippingMethod: e.target.value }))
-                            }
-                            className="accent-[var(--accent)]"
-                          />
-                          <div>
-                            <p className="text-sm font-semibold text-[var(--foreground)]">
-                              {rate.label}
-                            </p>
-                            <p className="text-xs text-[var(--muted-foreground)]">
-                              {rate.description}
-                            </p>
+                <motion.div variants={fadeInUp} className="mt-6">
+                  <p className="text-sm font-medium text-[var(--foreground)] mb-3 flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-[var(--accent)]" />
+                    Shipping Method
+                  </p>
+                  <div className="space-y-2">
+                    {SHIPPING_RATES.map((rate) => {
+                      const effectivePrice = subtotal >= FREE_SHIPPING_THRESHOLD && rate.id === "free" ? 0 : rate.price;
+                      const isDisabled = rate.id === "free" && subtotal < FREE_SHIPPING_THRESHOLD;
+                      return (
+                        <label
+                          key={rate.id}
+                          className={cn(
+                            "flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all duration-200",
+                            shipping.shippingMethod === rate.id
+                              ? "border-[var(--accent)] bg-[var(--accent-light)]"
+                              : "border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent)]/50",
+                            isDisabled && "opacity-40 cursor-not-allowed"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="shippingMethod"
+                              value={rate.id}
+                              checked={shipping.shippingMethod === rate.id}
+                              onChange={() =>
+                                !isDisabled &&
+                                setShipping((p) => ({ ...p, shippingMethod: rate.id }))
+                              }
+                              disabled={isDisabled}
+                              className="accent-[var(--accent)]"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-[var(--foreground)]">{rate.label}</p>
+                              <p className="text-xs text-[var(--muted-foreground)]">{rate.description}</p>
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-sm font-bold text-[var(--foreground)]">
-                          {rate.price === 0 ? "Free" : formatPrice(rate.price)}
-                        </span>
-                      </label>
-                    ))}
+                          <span className="text-sm font-semibold text-[var(--foreground)]">
+                            {effectivePrice === 0 ? "Free" : formatPrice(effectivePrice)}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </motion.div>
 
-                <motion.div variants={fadeInUp} className="flex justify-end">
+                <motion.div variants={fadeInUp} className="mt-8 flex justify-end">
                   <button
                     onClick={handleShippingNext}
-                    className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
                   >
                     Continue to Payment
                     <ChevronRight className="h-4 w-4" />
@@ -682,103 +643,92 @@ export default function CheckoutPage() {
               </motion.div>
             )}
 
-            {/* PAYMENT STEP */}
+            {/* ── PAYMENT STEP ── */}
             {step === "payment" && (
               <motion.div
-                key="payment"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
-                className="space-y-6"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 md:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
               >
-                <motion.div
+                <motion.h2
                   variants={fadeInUp}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
+                  className="font-display text-xl font-bold text-[var(--foreground)] mb-6 flex items-center gap-2"
                 >
-                  <div className="flex items-center gap-2 mb-6">
-                    <CreditCard className="h-5 w-5 text-[var(--accent)]" />
-                    <h2 className="font-display text-xl font-bold text-[var(--foreground)]">
-                      Payment Details
-                    </h2>
-                    <span className="ml-auto flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
-                      <Lock className="h-3 w-3" /> Secure
-                    </span>
-                  </div>
+                  <CreditCard className="h-5 w-5 text-[var(--accent)]" />
+                  Payment Details
+                </motion.h2>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField
-                      label="Card Number"
-                      id="cardNumber"
-                      value={payment.cardNumber}
-                      onChange={(e) =>
-                        setPayment((prev) => ({
-                          ...prev,
-                          cardNumber: formatCard(e.target.value),
-                        }))
-                      }
-                      error={paymentErrors.cardNumber}
-                      placeholder="1234 5678 9012 3456"
-                      inputMode="numeric"
-                      className="sm:col-span-2"
-                    />
-                    <InputField
-                      label="Name on Card"
-                      id="cardName"
-                      value={payment.cardName}
-                      onChange={(e) =>
-                        setPayment((prev) => ({ ...prev, cardName: e.target.value }))
-                      }
-                      error={paymentErrors.cardName}
-                      placeholder="Jane Smith"
-                      className="sm:col-span-2"
-                    />
-                    <InputField
-                      label="Expiry Date"
-                      id="expiry"
-                      value={payment.expiry}
-                      onChange={(e) =>
-                        setPayment((prev) => ({
-                          ...prev,
-                          expiry: formatExpiry(e.target.value),
-                        }))
-                      }
-                      error={paymentErrors.expiry}
-                      placeholder="MM/YY"
-                      inputMode="numeric"
-                    />
-                    <InputField
-                      label="CVV"
-                      id="cvv"
-                      value={payment.cvv}
-                      onChange={(e) =>
-                        setPayment((prev) => ({
-                          ...prev,
-                          cvv: e.target.value.replace(/\D/g, "").slice(0, 4),
-                        }))
-                      }
-                      error={paymentErrors.cvv}
-                      placeholder="123"
-                      inputMode="numeric"
-                      type="password"
-                    />
-                  </div>
-
-                  <p className="mt-4 text-xs text-[var(--muted-foreground)]">
-                    This is a demo checkout. No real payment is processed.
-                  </p>
+                <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField
+                    label="Card Number"
+                    id="cardNumber"
+                    placeholder="1234 5678 9012 3456"
+                    value={payment.cardNumber}
+                    onChange={(e) =>
+                      setPayment((p) => ({ ...p, cardNumber: formatCard(e.target.value) }))
+                    }
+                    error={paymentErrors.cardNumber}
+                    className="sm:col-span-2"
+                    inputMode="numeric"
+                    maxLength={19}
+                  />
+                  <InputField
+                    label="Name on Card"
+                    id="cardName"
+                    placeholder="Jane Smith"
+                    value={payment.cardName}
+                    onChange={(e) => setPayment((p) => ({ ...p, cardName: e.target.value }))}
+                    error={paymentErrors.cardName}
+                    className="sm:col-span-2"
+                  />
+                  <InputField
+                    label="Expiry (MM/YY)"
+                    id="expiry"
+                    placeholder="08/27"
+                    value={payment.expiry}
+                    onChange={(e) =>
+                      setPayment((p) => ({ ...p, expiry: formatExpiry(e.target.value) }))
+                    }
+                    error={paymentErrors.expiry}
+                    inputMode="numeric"
+                    maxLength={5}
+                  />
+                  <InputField
+                    label="CVV"
+                    id="cvv"
+                    placeholder="123"
+                    value={payment.cvv}
+                    onChange={(e) =>
+                      setPayment((p) => ({
+                        ...p,
+                        cvv: e.target.value.replace(/\D/g, "").slice(0, 4),
+                      }))
+                    }
+                    error={paymentErrors.cvv}
+                    inputMode="numeric"
+                    maxLength={4}
+                  />
                 </motion.div>
 
-                <motion.div variants={fadeInUp} className="flex justify-between">
+                <motion.div
+                  variants={fadeInUp}
+                  className="mt-4 flex items-center gap-2 text-xs text-[var(--muted-foreground)] bg-[var(--accent-light)] rounded-xl px-4 py-3"
+                >
+                  <Lock className="h-3.5 w-3.5 text-[var(--accent)] shrink-0" />
+                  Your payment information is encrypted and never stored on our servers.
+                </motion.div>
+
+                <motion.div variants={fadeInUp} className="mt-8 flex justify-between">
                   <button
                     onClick={() => setStep("shipping")}
-                    className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-3 text-sm font-semibold text-[var(--foreground)] transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--accent-light)] transition-colors duration-200"
                   >
-                    <ChevronRight className="h-4 w-4 rotate-180" />
                     Back
                   </button>
                   <button
                     onClick={handlePaymentNext}
-                    className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200"
                   >
                     Review Order
                     <ChevronRight className="h-4 w-4" />
@@ -787,70 +737,24 @@ export default function CheckoutPage() {
               </motion.div>
             )}
 
-            {/* REVIEW STEP */}
+            {/* ── REVIEW STEP ── */}
             {step === "review" && (
               <motion.div
-                key="review"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
-                className="space-y-6"
+                className="space-y-4"
               >
-                {/* Items */}
-                <motion.div
-                  variants={fadeInUp}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <ShoppingBag className="h-5 w-5 text-[var(--accent)]" />
-                    <h2 className="font-display text-xl font-bold text-[var(--foreground)]">
-                      Your Items
-                    </h2>
-                  </div>
-                  <ul className="divide-y divide-[var(--border)]">
-                    {items.map((item) => (
-                      <li key={`${item.bookId}-${item.format}`} className="flex gap-4 py-4">
-                        <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--accent-light)]">
-                          <img
-                            src={item.coverImage}
-                            alt={item.title}
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = "/images/book-placeholder.jpg";
-                            }}
-                          />
-                        </div>
-                        <div className="flex flex-1 flex-col justify-center">
-                          <p className="text-sm font-semibold text-[var(--foreground)] line-clamp-1">
-                            {item.title}
-                          </p>
-                          <p className="text-xs text-[var(--muted-foreground)]">
-                            {item.author} &middot; {item.format}
-                          </p>
-                          <p className="text-xs text-[var(--muted-foreground)]">
-                            Qty: {item.quantity}
-                          </p>
-                        </div>
-                        <p className="text-sm font-bold text-[var(--foreground)] self-center">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-
                 {/* Shipping summary */}
                 <motion.div
                   variants={fadeInUp}
                   className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-[var(--accent)]" />
-                      <h2 className="font-display text-xl font-bold text-[var(--foreground)]">
-                        Shipping To
-                      </h2>
-                    </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-display text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-[var(--accent)]" />
+                      Shipping
+                    </h3>
                     <button
                       onClick={() => setStep("shipping")}
                       className="text-xs text-[var(--accent)] hover:underline"
@@ -858,54 +762,113 @@ export default function CheckoutPage() {
                       Edit
                     </button>
                   </div>
-                  <div className="text-sm text-[var(--muted-foreground)] space-y-1">
-                    <p className="font-semibold text-[var(--foreground)]">{shipping.fullName}</p>
+                  <div className="text-sm text-[var(--muted-foreground)] space-y-0.5">
+                    <p className="font-medium text-[var(--foreground)]">{shipping.fullName}</p>
                     <p>{shipping.email}</p>
                     <p>{shipping.addressLine1}{shipping.addressLine2 ? `, ${shipping.addressLine2}` : ""}</p>
-                    <p>
-                      {shipping.city}{shipping.state ? `, ${shipping.state}` : ""} {shipping.postalCode}
-                    </p>
+                    <p>{shipping.city}, {shipping.state} {shipping.postalCode}</p>
                     <p>{shipping.country}</p>
-                    <p className="mt-2 font-medium text-[var(--foreground)]">
-                      {selectedRate.label} ({selectedRate.description})
+                    <p className="mt-1 text-[var(--accent)] font-medium">
+                      {SHIPPING_RATES.find((r) => r.id === shipping.shippingMethod)?.label} shipping
                     </p>
                   </div>
                 </motion.div>
 
-                {/* Error message */}
+                {/* Payment summary */}
+                <motion.div
+                  variants={fadeInUp}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-display text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-[var(--accent)]" />
+                      Payment
+                    </h3>
+                    <button
+                      onClick={() => setStep("payment")}
+                      className="text-xs text-[var(--accent)] hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    Card ending in{" "}
+                    <span className="font-medium text-[var(--foreground)]">
+                      {payment.cardNumber.replace(/\s/g, "").slice(-4)}
+                    </span>
+                  </p>
+                  <p className="text-sm text-[var(--muted-foreground)]">{payment.cardName}</p>
+                </motion.div>
+
+                {/* Items summary */}
+                <motion.div
+                  variants={fadeInUp}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]"
+                >
+                  <h3 className="font-display text-base font-bold text-[var(--foreground)] flex items-center gap-2 mb-4">
+                    <ShoppingBag className="h-4 w-4 text-[var(--accent)]" />
+                    Items ({totalItems})
+                  </h3>
+                  <ul className="space-y-3">
+                    {items.map((item) => (
+                      <li key={`${item.bookId}-${item.format}`} className="flex items-center gap-3">
+                        <div className="h-14 w-10 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--accent-light)] shrink-0">
+                          <img
+                            src={item.coverImage}
+                            alt={item.title}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[var(--foreground)] truncate">{item.title}</p>
+                          <p className="text-xs text-[var(--muted-foreground)]">{item.author} · {item.format} · Qty {item.quantity}</p>
+                        </div>
+                        <span className="text-sm font-semibold text-[var(--foreground)] shrink-0">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+
+                {/* Submit error */}
                 {submitError && (
                   <motion.div
-                    variants={fadeInUp}
-                    className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+                    role="alert"
                   >
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <p>{submitError}</p>
+                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-red-700 leading-snug">{submitError}</p>
                   </motion.div>
                 )}
 
                 <motion.div variants={fadeInUp} className="flex justify-between">
                   <button
                     onClick={() => setStep("payment")}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-3 text-sm font-semibold text-[var(--foreground)] transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--accent-light)] transition-colors duration-200 disabled:opacity-50"
                   >
-                    <ChevronRight className="h-4 w-4 rotate-180" />
                     Back
                   </button>
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-8 py-3 text-sm font-semibold text-[var(--primary)] transition-all duration-200 hover:bg-[var(--accent-hover)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-8 py-3 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--accent-hover)] transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_2px_12px_rgba(200,169,110,0.35)]"
                   >
-                    {isSubmitting ? (
+                    {submitting ? (
                       <>
-                        <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                        Placing Order...
+                        <span className="h-4 w-4 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+                        {t("checkout.processing")}
                       </>
                     ) : (
                       <>
                         <Lock className="h-4 w-4" />
-                        Place Order
+                        {t("checkout.placeOrder")}
                       </>
                     )}
                   </button>
@@ -914,7 +877,7 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* ── Right: Order Summary ── */}
+          {/* Sidebar */}
           <div className="lg:col-span-1">
             <Reveal>
               <OrderSummary
@@ -922,7 +885,7 @@ export default function CheckoutPage() {
                 shippingCost={shippingCost}
                 tax={tax}
                 total={total}
-                itemCount={itemCount}
+                itemCount={totalItems}
               />
             </Reveal>
           </div>
