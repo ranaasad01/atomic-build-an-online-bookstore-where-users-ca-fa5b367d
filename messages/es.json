@@ -1,0 +1,1102 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "catalog": "Explorar",
+    "cart": "Carrito"
+  },
+  "footer": {
+    "tagline": "Ficción seleccionada, no ficción y todo lo demás — curado para lectores que se toman sus libros en serio.",
+    "shopHeading": "Tienda",
+    "genresHeading": "Géneros",
+    "copyright": "© {year} {name}. Todos los derechos reservados.",
+    "madeWith": "Hecho con",
+    "forReaders": "para lectores en todas partes."
+  },
+  "catalog": {
+    "heading": "Explora Nuestra Colección",
+    "body": "Miles de títulos en todos los géneros — desde ficción literaria cautivadora hasta no ficción que expande la mente. Encuentra tu próxima gran lectura.",
+    "searchPlaceholder": "Busca por título, autor o palabra clave...",
+    "filterGenre": "Género",
+    "filterSort": "Ordenar por",
+    "filterPrice": "Rango de Precio",
+    "sortBestsellers": "Más Vendidos",
+    "sortNewest": "Lanzamientos Recientes",
+    "sortPriceLow": "Precio: Menor a Mayor",
+    "sortPriceHigh": "Precio: Mayor a Menor",
+    "sortRating": "Mejor Calificados",
+    "allGenres": "Todos los Géneros",
+    "gridView": "Vista de cuadrícula",
+    "listView": "Vista de lista",
+    "clearFilters": "Limpiar todos los filtros",
+    "noResults": "Ningún libro coincide con tus filtros actuales.",
+    "noResultsHint": "Intenta ajustar tu género, rango de precio o término de búsqueda.",
+    "addToCart": "Agregar al Carrito",
+    "viewDetails": "Ver Detalles",
+    "showing": "Mostrando",
+    "of": "de",
+    "books": "libros",
+    "inStock": "En Stock",
+    "outOfStock": "Agotado",
+    "addedToCart": "Agregado al carrito",
+    "backHome": "Volver a Inicio",
+    "badge": {
+      "bestseller": "Más Vendido",
+      "featured": "Destacado"
+    },
+    "button": {
+      "addToCart": "Agregar al Carrito",
+      "added": "Agregado al Carrito",
+      "outOfStock": "Agotado"
+    },
+    "clearSearch": "Borrar búsqueda",
+    "controls": {
+      "filters": "Filtros"
+    },
+    "ctaBody": "Encuentra tu próxima lectura favorita entre miles de títulos.",
+    "ctaEyebrow": "Comienza a Explorar",
+    "ctaHeading": "Descubre Nuevos Libros",
+    "empty": {
+      "clearFilters": "Borrar Filtros",
+      "subtitle": "Intenta ajustar tus filtros o términos de búsqueda.",
+      "title": "No Se Encontraron Libros"
+    },
+    "emptyBody": "No pudimos encontrar ningún libro que coincida con tu búsqueda.",
+    "emptyTitle": "Nada Aquí Todavía",
+    "eyebrow": "Nuestra Colección",
+    "filter": {
+      "author": "Autor",
+      "clearAll": "Borrar Todo",
+      "genre": "Género",
+      "price": "Precio",
+      "title": "Filtros"
+    },
+    "filterByPrice": "Filtrar por Precio",
+    "filters": "Refina Tu Búsqueda",
+    "header": {
+      "eyebrow": "Bienvenido a Nuestra Librería",
+      "freeShipping": "Envío Gratis en Pedidos Mayores a $50",
+      "subtitle": "Explora miles de libros en todos los géneros.",
+      "title": "Encuentra Tu Próxima Lectura"
+    },
+    "lowStock": "Solo Quedan Pocos",
+    "pagination": {
+      "next": "Siguiente",
+      "pageOf": "Página {current} de {total}",
+      "prev": "Anterior"
+    },
+    "removeFilter": "Eliminar",
+    "resultCount": "{count} Resultados",
+    "results": {
+      "count": "Mostrando {count} Libros",
+      "none": "No se encontraron resultados."
+    },
+    "search": {
+      "placeholder": "Busca por título, autor o género…"
+    },
+    "subheading": "Explora Nuestra Colección",
+    "viewCart": "Ver Carrito"
+  },
+  "book": {
+    "aboutHeading": "Acerca de Este Libro",
+    "detailsHeading": "Detalles del Libro",
+    "addToCartHeading": "Añade a Tu Colección",
+    "relatedHeading": "También Podrías Amar",
+    "addToCart": "Añadir al Carrito",
+    "saveForLater": "Guardar para Después",
+    "inStock": "En Stock",
+    "outOfStock": "Agotado",
+    "shipsIn": "Se envía en 2 días hábiles",
+    "freeShipping": "Envío gratis en compras mayores a $35",
+    "returns": "Devoluciones en 30 días",
+    "secureCheckout": "Compra segura",
+    "hardcover": "Tapa dura",
+    "paperback": "Tapa blanda",
+    "ebook": "Libro electrónico",
+    "quantity": "Cantidad",
+    "browseAuthor": "Ver todos los libros de este autor",
+    "browseGenre": "Ver todos",
+    "pullQuote": "Una obra maestra de devastación silenciosa.",
+    "pullQuoteSource": "The Guardian",
+    "addedToCart": "¡Agregado a tu carrito!",
+    "viewCart": "Ver carrito",
+    "continueShopping": "Continuar comprando"
+  },
+  "cart": {
+    "heading": "Tu carrito",
+    "body": "Revisa los títulos que elegiste, ajusta las cantidades o elimina artículos antes de ir al pago.",
+    "itemsHeading": "Artículos en tu bolsa",
+    "summaryHeading": "Resumen del pedido",
+    "subtotal": "Subtotal",
+    "tax": "Impuesto estimado (8%)",
+    "shipping": "Envío",
+    "freeShipping": "Gratis",
+    "standardShipping": "$4.99",
+    "total": "Total del pedido",
+    "proceedToCheckout": "Ir al pago",
+    "continueShopping": "Continuar comprando",
+    "remove": "Eliminar",
+    "emptyHeading": "Tu carrito está vacío",
+    "emptyBody": "Parece que aún no has agregado ningún libro. Ve al catálogo para descubrir bestsellers, joyas ocultas y selecciones del personal esperando un nuevo hogar en tu estantería.",
+    "emptyCtaText": "Explorar el catálogo",
+    "secureCheckout": "Compra segura — SSL de 256 bits",
+    "returnsPolicy": "Devoluciones gratis en 30 días en todos los pedidos",
+    "freeShippingThreshold": "Envío gratis en pedidos mayores a $40",
+    "browseCatalogCta": "Continuar comprando",
+    "checkoutCta": "Ir al pago",
+    "clearCart": "Vaciar carrito",
+    "eachLabel": "cada uno",
+    "emptyDescription": "Agrega algunos libros para comenzar.",
+    "emptyTitle": "Tu carrito está vacío",
+    "freeLabel": "GRATIS",
+    "freeShippingProgress": "Envío gratis en pedidos superiores a $50",
+    "freeShippingUnlocked": "¡Has desbloqueado el envío gratis!",
+    "itemCountLabel": "artículos",
+    "itemsListLabel": "Artículos en el carrito",
+    "pageTitle": "Carrito de compras",
+    "secureNote": "Compra segura con encriptación de nivel industrial",
+    "shippingLabel": "Envío",
+    "subtotalLabel": "Subtotal",
+    "summaryTitle": "Resumen del pedido",
+    "taxLabel": "Impuestos",
+    "totalLabel": "Total"
+  },
+  "checkout": {
+    "heading": "Pagar",
+    "orderSummaryHeading": "Tu pedido",
+    "shippingHeading": "Detalles de envío",
+    "paymentHeading": "Información de pago",
+    "placeOrder": "Realizar pedido",
+    "processing": "Procesando...",
+    "namePlaceholder": "Jane Smith",
+    "emailPlaceholder": "jane@example.com",
+    "address1Placeholder": "123 Main Street",
+    "address2Placeholder": "Apt 4B (opcional)",
+    "cityPlaceholder": "Portland",
+    "statePlaceholder": "Oregon",
+    "postalPlaceholder": "97201",
+    "cardNamePlaceholder": "Jane Smith",
+    "cardNumberPlaceholder": "1234 5678 9012 3456",
+    "expiryPlaceholder": "MM / YY",
+    "cvvPlaceholder": "123",
+    "sameAsShipping": "Igual que la dirección de envío",
+    "standardShipping": "Estándar (3–5 días hábiles) — $4.99",
+    "expressShipping": "Exprés (1–2 días hábiles) — $12.99",
+    "freeShipping": "Envío gratis (pedidos superiores a $50)",
+    "termsNotice": "Al realizar tu pedido, aceptas nuestros Términos de servicio y Política de privacidad.",
+    "noAccountRequired": "No se requiere cuenta — tu pedido se rastrea mediante un token de invitado seguro.",
+    "freeReturns": "Devoluciones gratis dentro de 30 días en todos los libros sin leer y sin daños.",
+    "supportEmail": "¿Preguntas? Contáctanos en hello@pageturner.store",
+    "back": "Atrás",
+    "backToCart": "Volver al carrito",
+    "browseCta": "Continuar Comprando",
+    "continue": "Continuar",
+    "emptyCart": "Tu Carrito está Vacío",
+    "emptyCartSub": "Agrega algunos libros para comenzar.",
+    "payment": {
+      "cardNumber": "Número de Tarjeta",
+      "cardholderName": "Nombre del Titular",
+      "cvv": "CVV",
+      "disclaimer": "Tu información de pago es segura y está encriptada.",
+      "expiry": "Fecha de Vencimiento",
+      "sameAsShipping": "Igual a la Dirección de Envío",
+      "secure": "Compra Segura",
+      "title": "Detalles de Pago"
+    },
+    "placing": "Procesando tu pedido…",
+    "review": {
+      "items": "Artículos del Pedido",
+      "noCard": "Sin método de pago agregado",
+      "paymentMethod": "Método de Pago",
+      "shippingTo": "Enviar a",
+      "title": "Revisa tu Pedido"
+    },
+    "shipping": {
+      "address1": "Dirección",
+      "address2": "Apartamento, suite, etc. (opcional)",
+      "city": "Ciudad",
+      "country": "País",
+      "email": "Correo Electrónico",
+      "express": "Envío Rápido",
+      "expressDetail": "2–3 días hábiles",
+      "free": "Estándar",
+      "freeDetail": "5–7 días hábiles",
+      "fullName": "Nombre Completo",
+      "method": "Método de Envío",
+      "postalCode": "Código Postal",
+      "standard": "Estándar",
+      "standardDetail": "5–7 días hábiles",
+      "state": "Estado / Provincia",
+      "title": "Detalles de Envío"
+    },
+    "subheading": "Completa tu compra en tres pasos simples",
+    "summary": {
+      "empty": "Tu carrito está vacío",
+      "free": "Gratis",
+      "freeShippingHint": "Envío gratis en pedidos mayores a $50",
+      "qty": "Cantidad",
+      "shipping": "Envío",
+      "subtotal": "Subtotal",
+      "tax": "Impuesto",
+      "title": "Resumen del Pedido",
+      "total": "Total"
+    }
+  },
+  "confirmation": {
+    "heading": "Tu pedido está confirmado — ¡feliz lectura!",
+    "body": "Gracias por tu compra. Hemos recibido tu pedido y estamos preparando tus libros para enviar. Un correo de confirmación con tu recibo y detalles de seguimiento llegará a tu bandeja de entrada pronto.",
+    "orderSummaryHeading": "Resumen del Pedido",
+    "shippingHeading": "Detalles de Envío",
+    "ctaHeading": "Sigue explorando grandes libros",
+    "ctaBody": "Tu próxima lectura favorita te está esperando. Explora nuestro catálogo completo de ficción, no ficción, ciencia ficción, misterio y más.",
+    "ctaButton": "Explorar el catálogo",
+    "backHome": "Volver al Inicio"
+  },
+  "bookDetail": {
+    "backToCatalog": "Volver al Catálogo",
+    "badge": {
+      "bestseller": "Bestseller"
+    },
+    "breadcrumb": {
+      "browse": "Explorar",
+      "fiction": "Ficción",
+      "home": "Inicio"
+    },
+    "byAuthor": "Por",
+    "cta": {
+      "addToCart": "Añadir al Carrito",
+      "added": "Añadido al Carrito",
+      "buyNow": "Comprar Ahora",
+      "share": "Compartir",
+      "wishlist": "Añadir a Lista de Deseos"
+    },
+    "description": {
+      "extra": "Acerca de Este Libro",
+      "heading": "Descripción"
+    },
+    "details": {
+      "heading": "Detalles"
+    },
+    "discount": "Ahorrar",
+    "qty": {
+      "decrease": "Disminuir cantidad",
+      "increase": "Aumentar cantidad"
+    },
+    "related": {
+      "heading": "También Te Podría Gustar",
+      "viewAll": "Ver Todas las Recomendaciones"
+    },
+    "reviewCount": "reseñas",
+    "reviews": {
+      "basedOn": "Basado en"
+    },
+    "shippingNote": "Envío gratis en pedidos superiores a $50",
+    "stock": {
+      "inStock": "En Stock",
+      "lowStock": "Solo quedan algunos",
+      "outOfStock": "Agotado"
+    },
+    "trust": {
+      "authentic": "100% Auténtico",
+      "returns": "Devoluciones en 30 Días",
+      "shipping": "Envío Rápido y Seguro"
+    }
+  },
+  "home": {
+    "addToCart": "Añadir al carrito",
+    "bestseller": "Más vendido",
+    "cta": {
+      "body": "Descubre tu próxima lectura favorita en nuestra colección seleccionada de bestsellers y joyas ocultas.",
+      "button": "Comenzar a explorar",
+      "footnote": "Nuevos títulos añadidos semanalmente",
+      "heading": "¿Listo para sumergirte en una gran historia?"
+    },
+    "featured": {
+      "eyebrow": "Seleccionado para ti",
+      "heading": "Libros destacados",
+      "viewAll": "Ver todo"
+    },
+    "genres": {
+      "eyebrow": "Explorar por categoría",
+      "heading": "Explorar géneros",
+      "subheading": "Encuentra tu próximo favorito en cualquier género",
+      "titles": "Títulos"
+    },
+    "hero": {
+      "badge": "Envío gratis en pedidos superiores a $50",
+      "cta": "Comprar ahora",
+      "headline": "Tu librería, reinventada",
+      "secondary": "Descubre miles de libros, entregados en tu puerta",
+      "subheadline": "Desde bestsellers hasta hallazgos raros, encuentra tu próxima gran lectura"
+    },
+    "testimonials": {
+      "eyebrow": "AMADO POR LOS LECTORES",
+      "heading": "Mira qué dicen los amantes de los libros"
+    },
+    "values": {
+      "eyebrow": "POR QUÉ ELEGIRNOS",
+      "heading": "Tu fuente de confianza para cada historia"
+    }
+  },
+  "orderConfirmation": {
+    "banner": {
+      "heading": "Pedido confirmado",
+      "orderLabel": "Número de pedido",
+      "subheading": "Gracias por tu compra. Tus libros están en camino."
+    },
+    "cta": {
+      "backHome": "Volver al inicio",
+      "continueShopping": "Continuar comprando"
+    },
+    "delivery": {
+      "label": "Método de entrega",
+      "note": "Te enviaremos actualizaciones de seguimiento a tu correo electrónico"
+    },
+    "items": {
+      "each": "Cada uno",
+      "heading": "Artículos del pedido",
+      "itemsLabel": "Artículos",
+      "qtyLabel": "Cantidad"
+    },
+    "meta": {
+      "placedOn": "Pedido realizado el"
+    },
+    "shipping": {
+      "contactLabel": "Contacto",
+      "deliverTo": "Entregar a",
+      "heading": "Detalles de envío",
+      "methodLabel": "Método de envío"
+    },
+    "summary": {
+      "free": "Gratis",
+      "heading": "Resumen del pedido",
+      "shipping": "Envío",
+      "subtotal": "Subtotal",
+      "tax": "Impuesto",
+      "total": "Total"
+    },
+    "tracking": {
+      "body": "Recibirás información de seguimiento por correo electrónico en breve. Revisa tu bandeja de entrada para actualizaciones.",
+      "heading": "Rastrear tu pedido"
+    },
+    "trust": {
+      "badge": "Compra segura"
+    }
+  },
+  "hero": [
+    "Over 2,000 titles across 12 genres",
+    "New arrivals every week",
+    "Free shipping on orders over $40"
+  ],
+  "featured-books": [
+    {
+      "title": "The Cartographer of Lost Hours",
+      "author": "Elena Vasquez",
+      "genre": "Literary Fiction",
+      "price": "$18.99",
+      "description": "A sweeping debut about a mapmaker who discovers her late grandmother's secret correspondence hidden inside antique atlases."
+    },
+    {
+      "title": "Quiet Algorithms",
+      "author": "James Okafor",
+      "genre": "Science Fiction",
+      "price": "$16.99",
+      "description": "A near-future thriller exploring what happens when an AI trained on humanity's greatest novels begins writing its own."
+    },
+    {
+      "title": "The Bread & Salt Diaries",
+      "author": "Mira Holst",
+      "genre": "Memoir",
+      "price": "$14.99",
+      "description": "A James Beard Award-winning chef traces her family's migration through the recipes that survived every border crossing."
+    },
+    {
+      "title": "Inheritance of Storms",
+      "author": "Callum Reyes",
+      "genre": "Historical Fiction",
+      "price": "$19.99",
+      "description": "Set across three generations of a Basque fishing family, this is a novel about loyalty, loss, and the sea's long memory."
+    },
+    {
+      "title": "How to Think Like a Naturalist",
+      "author": "Dr. Priya Anand",
+      "genre": "Nature & Science",
+      "price": "$22.99",
+      "description": "A field guide to slowing down and reading the living world around you, from a celebrated wildlife biologist."
+    }
+  ],
+  "bestsellers": [
+    {
+      "title": "The Midnight Archivist",
+      "author": "Saoirse Flynn",
+      "genre": "Mystery & Thriller",
+      "price": "$15.99",
+      "badge": "#1 in Mystery",
+      "description": "A Dublin librarian stumbles upon a decades-old murder hidden inside a returned book's annotations. Over 12,000 copies sold."
+    },
+    {
+      "title": "Borrowed Light",
+      "author": "Theo Nakamura",
+      "genre": "Contemporary Fiction",
+      "price": "$13.99",
+      "badge": "Staff Favourite",
+      "description": "A quiet, devastating novel about two estranged siblings who reconnect while clearing out their childhood home."
+    },
+    {
+      "title": "Empire of Roots",
+      "author": "Adaeze Obi",
+      "genre": "Historical Fiction",
+      "price": "$17.99",
+      "badge": "Editor's Pick",
+      "description": "A richly imagined epic following a West African botanist whose plant specimens reshape the course of colonial-era science."
+    },
+    {
+      "title": "The Pragmatist's Guide to Almost Everything",
+      "author": "Harriet Bloom",
+      "genre": "Self-Help & Essays",
+      "price": "$12.99",
+      "badge": "Top Rated",
+      "description": "Sharp, funny, and genuinely useful — the rare self-help book that respects your intelligence."
+    },
+    {
+      "title": "Children of the Slow River",
+      "author": "Yusuf Demirel",
+      "genre": "Literary Fiction",
+      "price": "$16.99",
+      "badge": "Booker Longlist",
+      "description": "Longlisted for the International Booker Prize, this novel follows four strangers whose lives converge on a single night in Istanbul."
+    },
+    {
+      "title": "Starfall Academy: The Obsidian Gate",
+      "author": "Cassidy Park",
+      "genre": "Young Adult Fantasy",
+      "price": "$11.99",
+      "badge": "Series Favourite",
+      "description": "The third instalment in the beloved Starfall series — darker, bolder, and impossible to read in one sitting."
+    }
+  ],
+  "cta": [
+    "Fiction — Literary, Historical, Contemporary, and Genre Fiction from debut voices to Booker Prize winners",
+    "Non-Fiction — Memoir, Science, History, Essays, and Self-Help written by experts and storytellers alike",
+    "Science Fiction & Fantasy — Epic world-building, hard SF, and everything in between",
+    "Mystery & Thriller — Page-turners that keep you guessing until the final line",
+    "Children's & Young Adult — Stories that spark a lifelong love of reading"
+  ],
+  "search-filters": [
+    {
+      "label": "Search",
+      "description": "Full-text search across titles, authors, and descriptions with instant debounced results"
+    },
+    {
+      "label": "Genre",
+      "description": "Filter by Fiction, Non-Fiction, Mystery & Thriller, Science Fiction, Biography, History, Self-Help, Children's, Romance, or Science"
+    },
+    {
+      "label": "Author",
+      "description": "Browse by author name with an alphabetical dropdown of all available contributors"
+    },
+    {
+      "label": "Price Range",
+      "description": "Slide between $0 and $60 to match any budget, from bargain picks to premium editions"
+    },
+    {
+      "label": "Sort By",
+      "description": "Order results by Bestsellers, Newest Arrivals, Price: Low to High, Price: High to Low, or Highest Rated"
+    },
+    {
+      "label": "View Toggle",
+      "description": "Switch between a spacious grid view for cover browsing or a compact list view for quick scanning"
+    },
+    {
+      "label": "Active Filters",
+      "description": "See all applied filters as removable gold badges above the results, with a one-click Clear all option"
+    }
+  ],
+  "book-grid": [
+    {
+      "title": "The Midnight Library",
+      "author": "Matt Haig",
+      "genre": "Fiction",
+      "rating": "4.7",
+      "price": "$14.99",
+      "description": "A dazzling novel about all the lives we could have lived, and the one that matters most."
+    },
+    {
+      "title": "Educated",
+      "author": "Tara Westover",
+      "genre": "Biography",
+      "rating": "4.8",
+      "price": "$13.99",
+      "description": "A memoir of a woman who grew up in the mountains of Idaho and went on to earn a PhD from Cambridge."
+    },
+    {
+      "title": "Project Hail Mary",
+      "author": "Andy Weir",
+      "genre": "Science Fiction",
+      "rating": "4.9",
+      "price": "$16.99",
+      "description": "A lone astronaut must save Earth from disaster in this propulsive, feel-good thriller."
+    },
+    {
+      "title": "Atomic Habits",
+      "author": "James Clear",
+      "genre": "Self-Help",
+      "rating": "4.8",
+      "price": "$17.99",
+      "description": "Tiny changes, remarkable results: a proven framework for building good habits and breaking bad ones."
+    },
+    {
+      "title": "The Name of the Wind",
+      "author": "Patrick Rothfuss",
+      "genre": "Fantasy",
+      "rating": "4.6",
+      "price": "$15.99",
+      "description": "The riveting first-person narrative of Kvothe, a legendary figure even in his own time."
+    },
+    {
+      "title": "Sapiens: A Brief History of Humankind",
+      "author": "Yuval Noah Harari",
+      "genre": "History",
+      "rating": "4.7",
+      "price": "$15.99",
+      "description": "A bold, panoramic view of the history of our species from the Stone Age to the twenty-first century."
+    },
+    {
+      "title": "Where the Crawdads Sing",
+      "author": "Delia Owens",
+      "genre": "Mystery",
+      "rating": "4.6",
+      "price": "$13.99",
+      "description": "A haunting tale of a young woman who raised herself in the marshes of North Carolina."
+    },
+    {
+      "title": "The Hitchhiker's Guide to the Galaxy",
+      "author": "Douglas Adams",
+      "genre": "Science Fiction",
+      "rating": "4.8",
+      "price": "$12.99",
+      "description": "The comedic sci-fi classic following Arthur Dent's improbable journey across the universe."
+    },
+    {
+      "title": "Becoming",
+      "author": "Michelle Obama",
+      "genre": "Biography",
+      "rating": "4.9",
+      "price": "$18.99",
+      "description": "An intimate, powerful, and inspiring memoir by the former First Lady of the United States."
+    },
+    {
+      "title": "Normal People",
+      "author": "Sally Rooney",
+      "genre": "Fiction",
+      "rating": "4.4",
+      "price": "$13.99",
+      "description": "A tender, unflinching story of mutual fascination between two young people in contemporary Ireland."
+    },
+    {
+      "title": "The Body: A Guide for Occupants",
+      "author": "Bill Bryson",
+      "genre": "Science",
+      "rating": "4.7",
+      "price": "$16.99",
+      "description": "A witty and illuminating tour of the human body and the science that keeps us alive."
+    },
+    {
+      "title": "Circe",
+      "author": "Madeline Miller",
+      "genre": "Fantasy",
+      "rating": "4.7",
+      "price": "$14.99",
+      "description": "The spellbinding story of the witch of Greek myth — her origins, her powers, and her place in a world of gods and monsters."
+    },
+    {
+      "title": "Think Again",
+      "author": "Adam Grant",
+      "genre": "Self-Help",
+      "rating": "4.6",
+      "price": "$17.99",
+      "description": "A guide to the surprising science of intellectual humility and the power of knowing what you don't know."
+    },
+    {
+      "title": "The Thursday Murder Club",
+      "author": "Richard Osman",
+      "genre": "Mystery",
+      "rating": "4.5",
+      "price": "$13.99",
+      "description": "Four unlikely friends in a retirement village meet weekly to solve cold cases — until a real murder lands on their doorstep."
+    },
+    {
+      "title": "Dune",
+      "author": "Frank Herbert",
+      "genre": "Science Fiction",
+      "rating": "4.8",
+      "price": "$14.99",
+      "description": "The epic saga of politics, religion, and survival on the desert planet Arrakis."
+    },
+    {
+      "title": "The Alchemist",
+      "author": "Paulo Coelho",
+      "genre": "Fiction",
+      "rating": "4.5",
+      "price": "$12.99",
+      "description": "A fable about following your dreams, told through the journey of a young Andalusian shepherd."
+    },
+    {
+      "title": "Klara and the Sun",
+      "author": "Kazuo Ishiguro",
+      "genre": "Fiction",
+      "rating": "4.4",
+      "price": "$15.99",
+      "description": "A luminous novel narrated by an Artificial Friend observing the human world with quiet, precise wonder."
+    },
+    {
+      "title": "The Subtle Art of Not Giving a F*ck",
+      "author": "Mark Manson",
+      "genre": "Self-Help",
+      "rating": "4.5",
+      "price": "$14.99",
+      "description": "A counterintuitive approach to living a good life by embracing limitation rather than chasing positivity."
+    },
+    {
+      "title": "Empty State",
+      "author": "",
+      "genre": "",
+      "rating": "",
+      "price": "",
+      "description": "No books match your current filters. Try adjusting your genre, price range, or search term — or clear all filters to browse the full collection."
+    },
+    {
+      "title": "Loading State",
+      "author": "",
+      "genre": "",
+      "rating": "",
+      "price": "",
+      "description": "Fetching your books — covers and details appear as each title loads from the catalog."
+    }
+  ],
+  "pagination": [
+    {
+      "label": "Previous page",
+      "description": "Navigate to the preceding set of results"
+    },
+    {
+      "label": "Page numbers",
+      "description": "Jump directly to any page in the current result set, with the active page highlighted in gold"
+    },
+    {
+      "label": "Next page",
+      "description": "Advance to the following set of results"
+    },
+    {
+      "label": "Results count",
+      "description": "A live tally such as 'Showing 1–18 of 214 books' updates whenever filters change"
+    },
+    {
+      "label": "Items per page",
+      "description": "Choose to display 18, 36, or 72 titles per page to suit your browsing pace"
+    }
+  ],
+  "book-hero": [
+    {
+      "label": "Cover image",
+      "description": "High-resolution front jacket art displayed prominently on the left panel"
+    },
+    {
+      "label": "Title",
+      "description": "Rendered in Playfair Display at display scale, anchoring the hero with literary gravitas"
+    },
+    {
+      "label": "Author byline",
+      "description": "In warm gold accent linking to a filtered catalog search by that author"
+    },
+    {
+      "label": "Star rating badge",
+      "description": "Drawn from aggregated reader ratings, shown beside genre tag"
+    },
+    {
+      "label": "Genre badge",
+      "description": "In a muted pill linking to the catalog filtered by genre"
+    },
+    {
+      "label": "Price",
+      "description": "Displayed prominently in accent gold with a Hardcover / Paperback / eBook format toggle"
+    },
+    {
+      "label": "Stock status",
+      "description": "In Stock — Ships within 2 business days"
+    }
+  ],
+  "description": [
+    {
+      "label": "Full synopsis",
+      "description": "Rendered in clean sans-serif body copy at 1rem / 1.65 line-height for comfortable long-form reading"
+    },
+    {
+      "label": "Read more toggle",
+      "description": "Collapses synopsis beyond 4 lines on mobile to preserve page rhythm"
+    },
+    {
+      "label": "Editorial pull-quote",
+      "description": "A masterwork of quiet devastation. — The Guardian"
+    },
+    {
+      "label": "Author bio",
+      "description": "A 2–3 sentence portrait of the author with a small circular author photo, name in h2, and a link to browse all their titles"
+    }
+  ],
+  "details": [
+    {
+      "label": "ISBN",
+      "value": "978-0-385-54734-2"
+    },
+    {
+      "label": "Publisher",
+      "value": "Knopf Doubleday Publishing Group"
+    },
+    {
+      "label": "Publication Date",
+      "value": "March 14, 2023"
+    },
+    {
+      "label": "Format",
+      "value": "Hardcover, 336 pages"
+    },
+    {
+      "label": "Language",
+      "value": "English"
+    },
+    {
+      "label": "Dimensions",
+      "value": "6.3 × 1.1 × 9.5 inches"
+    },
+    {
+      "label": "Weight",
+      "value": "1.1 lbs"
+    },
+    {
+      "label": "Series",
+      "value": "Standalone"
+    }
+  ],
+  "add-to-cart": [
+    {
+      "label": "Format selector",
+      "description": "Hardcover ($16.99) · Paperback ($12.99) · eBook ($7.99)"
+    },
+    {
+      "label": "Quantity stepper",
+      "description": "Minus / number input / plus — capped at available stock, defaults to 1"
+    },
+    {
+      "label": "Add to Cart button",
+      "description": "Full-width on mobile, fixed-width on desktop — deep navy background with gold hover state"
+    },
+    {
+      "label": "Save for Later",
+      "description": "Secondary link in muted-foreground text below the primary button"
+    },
+    {
+      "label": "Trust signals",
+      "description": "Secure checkout · Free shipping over $35 · 30-day returns"
+    },
+    {
+      "label": "Cart drawer preview",
+      "description": "On Add to Cart, a slide-in drawer confirms the item and shows cart subtotal"
+    }
+  ],
+  "related-books": [
+    {
+      "title": "The Covenant of Water",
+      "author": "Abraham Verghese",
+      "genre": "Literary Fiction",
+      "price": "$17.99",
+      "rating": "4.8"
+    },
+    {
+      "title": "Tomorrow, and Tomorrow, and Tomorrow",
+      "author": "Gabrielle Zevin",
+      "genre": "Literary Fiction",
+      "price": "$15.99",
+      "rating": "4.6"
+    },
+    {
+      "title": "Demon Copperhead",
+      "author": "Barbara Kingsolver",
+      "genre": "Literary Fiction",
+      "price": "$16.99",
+      "rating": "4.7"
+    },
+    {
+      "title": "The Midnight Library",
+      "author": "Matt Haig",
+      "genre": "Literary Fiction",
+      "price": "$13.99",
+      "rating": "4.5"
+    },
+    {
+      "title": "Lessons in Chemistry",
+      "author": "Bonnie Garmus",
+      "genre": "Literary Fiction",
+      "price": "$14.99",
+      "rating": "4.6"
+    },
+    {
+      "label": "Section layout",
+      "description": "Horizontal scroll on mobile, 5-column grid on desktop, each card using the BookCard component"
+    }
+  ],
+  "cart-items": [
+    {
+      "label": "Cover thumbnail",
+      "description": "Displayed alongside title, author, and genre badge for quick reference"
+    },
+    {
+      "label": "Quantity stepper",
+      "description": "Lets you increase or decrease copies — minimum 1, maximum 99"
+    },
+    {
+      "label": "Unit price",
+      "description": "Shown per copy, with the line total updating instantly as quantity changes"
+    },
+    {
+      "label": "Remove button",
+      "description": "Permanently drops the title from your cart with a single click"
+    },
+    {
+      "label": "Out-of-stock notice",
+      "description": "Replaces the quantity stepper if a title becomes unavailable"
+    },
+    {
+      "label": "Persistence",
+      "description": "Unsaved changes are persisted to localStorage so your cart survives page refreshes"
+    }
+  ],
+  "cart-summary": [
+    {
+      "label": "Subtotal",
+      "description": "Sum of all line totals before shipping or tax"
+    },
+    {
+      "label": "Estimated tax",
+      "description": "Calculated at 8% of subtotal, confirmed at checkout"
+    },
+    {
+      "label": "Shipping",
+      "description": "Free on orders over $35; otherwise a flat $4.99 standard rate applies"
+    },
+    {
+      "label": "Order total",
+      "description": "The final amount you'll be charged, displayed prominently in warm gold"
+    },
+    {
+      "label": "Secure checkout badge",
+      "description": "256-bit SSL encryption on every transaction"
+    },
+    {
+      "label": "30-day returns",
+      "description": "All books eligible for a full refund within 30 days of delivery"
+    }
+  ],
+  "checkout-cta": [
+    {
+      "label": "Continue Shopping",
+      "description": "Return to the catalog to add more titles"
+    },
+    {
+      "label": "Accepted payments",
+      "description": "Visa, Mastercard, American Express, and PayPal"
+    },
+    {
+      "label": "Currency",
+      "description": "All prices displayed in USD"
+    }
+  ],
+  "empty-state": [
+    "Explore over 200 curated titles across Fiction, Non-Fiction, Mystery, Sci-Fi, Biography, and more",
+    "Check out this week's bestsellers — hand-picked by our editorial team",
+    "Use filters to find books by genre, author, or price range that suit your taste perfectly"
+  ],
+  "order-summary": [
+    {
+      "label": "Subtotal",
+      "description": "Calculated from your cart items saved in your session"
+    },
+    {
+      "label": "Shipping",
+      "description": "Standard (3–5 business days): $4.99 · Express (1–2 business days): $12.99 · Free on orders over $50"
+    },
+    {
+      "label": "Tax",
+      "description": "Calculated at checkout based on your shipping destination"
+    },
+    {
+      "label": "Order Total",
+      "description": "The final amount charged to your payment method"
+    },
+    {
+      "label": "Line items",
+      "description": "Each line item shows: book cover thumbnail, title, author, unit price, and quantity selected"
+    },
+    {
+      "label": "Edit cart",
+      "description": "You can return to your cart to adjust quantities or remove items before placing the order"
+    }
+  ],
+  "shipping-form": [
+    {
+      "label": "Full name",
+      "description": "The name that should appear on the shipping label"
+    },
+    {
+      "label": "Email address",
+      "description": "We'll send your order confirmation and tracking updates here"
+    },
+    {
+      "label": "Address line 1",
+      "description": "Street number and street name"
+    },
+    {
+      "label": "Address line 2",
+      "description": "Apartment, suite, or unit number (optional)"
+    },
+    {
+      "label": "City",
+      "description": "Your delivery city or town"
+    },
+    {
+      "label": "State / Province",
+      "description": "Select from the dropdown list"
+    },
+    {
+      "label": "ZIP / Postal code",
+      "description": "Required for accurate delivery routing"
+    },
+    {
+      "label": "Country",
+      "description": "Select your destination country"
+    },
+    {
+      "label": "Shipping method",
+      "description": "Choose Standard ($4.99), Express ($12.99), or Free Shipping on qualifying orders"
+    }
+  ],
+  "payment-form": [
+    {
+      "label": "Cardholder name",
+      "description": "Exactly as it appears on your card"
+    },
+    {
+      "label": "Card number",
+      "description": "16-digit number on the front of your card (Visa, Mastercard, Amex, Discover accepted)"
+    },
+    {
+      "label": "Expiry date",
+      "description": "MM / YY format"
+    },
+    {
+      "label": "CVV / Security code",
+      "description": "3-digit code on the back of your card (4 digits for Amex)"
+    },
+    {
+      "label": "Billing address",
+      "description": "Check 'Same as shipping address' to auto-fill, or enter a different billing address"
+    },
+    {
+      "label": "Security",
+      "description": "All transactions are encrypted with 256-bit SSL — your information is always safe"
+    }
+  ],
+  "submit-cta": [
+    {
+      "label": "No account required",
+      "description": "Your order is tracked via a secure guest token"
+    },
+    {
+      "label": "Free returns",
+      "description": "Free returns within 30 days on all unread, undamaged books"
+    },
+    {
+      "label": "Support",
+      "description": "Questions? Reach our support team at hello@pageturner.store"
+    }
+  ],
+  "confirmation-header": [
+    {
+      "label": "Order placed",
+      "description": "Order #BK-20481 placed successfully"
+    },
+    {
+      "label": "Confirmation email",
+      "description": "Confirmation sent to the email address you provided"
+    },
+    {
+      "label": "Dispatch",
+      "description": "Estimated dispatch within 1–2 business days"
+    }
+  ],
+  "order-details": [
+    {
+      "label": "The Midnight Library",
+      "author": "Matt Haig",
+      "qty": "Qty 1",
+      "price": "$14.99"
+    },
+    {
+      "label": "Educated: A Memoir",
+      "author": "Tara Westover",
+      "qty": "Qty 1",
+      "price": "$16.49"
+    },
+    {
+      "label": "Project Hail Mary",
+      "author": "Andy Weir",
+      "qty": "Qty 2",
+      "price": "$13.99 each"
+    },
+    {
+      "label": "Subtotal",
+      "author": "",
+      "qty": "",
+      "price": "$59.46"
+    },
+    {
+      "label": "Shipping",
+      "author": "",
+      "qty": "",
+      "price": "Free (orders over $40)"
+    },
+    {
+      "label": "Tax (8%)",
+      "author": "",
+      "qty": "",
+      "price": "$4.76"
+    },
+    {
+      "label": "Order Total",
+      "author": "",
+      "qty": "",
+      "price": "$64.22"
+    }
+  ],
+  "shipping-info": [
+    {
+      "label": "Recipient",
+      "value": "Eleanor Voss"
+    },
+    {
+      "label": "Address",
+      "value": "47 Birchwood Lane, Apt 3B, Portland, OR 97201, United States"
+    },
+    {
+      "label": "Shipping method",
+      "value": "Standard (3–5 business days)"
+    },
+    {
+      "label": "Estimated delivery",
+      "value": "Wednesday, 18 June 2025"
+    },
+    {
+      "label": "Carrier",
+      "value": "USPS First-Class Package"
+    }
+  ]
+}
